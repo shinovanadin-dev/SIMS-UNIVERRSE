@@ -1019,6 +1019,40 @@ function escapeTranslator(s){return String(s??"").replace(/&/g,"&amp;").replace(
 /* STBL Engine v1 — raw, uncompressed STBL v5 reader/writer */
 let stblOriginal=null,stblTranslation=null,stblCurrent=null;
 
+/* STBL Engine restored: Sims 4 raw STBL v5 */
+function stblU16(d,o){if(o+2>d.length)throw Error("STBL truncated uint16");return d[o]|d[o+1]<<8}
+function stblU32(d,o){if(o+4>d.length)throw Error("STBL truncated uint32");return (d[o]|d[o+1]<<8|d[o+2]<<16|d[o+3]<<24)>>>0}
+function stblU64(d,o){if(o+8>d.length)throw Error("STBL truncated uint64");return Number(BigInt(stblU32(d,o))|(BigInt(stblU32(d,o+4))<<32n))}
+function stblParse(buffer){
+ let d=new Uint8Array(buffer);if(d.length<21)throw Error("STBL header is shorter than 21 bytes");
+ if(String.fromCharCode(...d.slice(0,4))!=="STBL")throw Error("Invalid STBL magic");
+ let version=stblU16(d,4);if(version!==5)throw Error("Unsupported STBL version "+version);
+ let compressed=d[6];if(compressed!==0)throw Error("Compressed STBL flag is set; use package extraction first");
+ let count=stblU64(d,7),total=stblU32(d,17);if(count>2000000)throw Error("Unreasonable STBL entry count");
+ let p=21,entries=[],decoder=new TextDecoder("utf-8",{fatal:true});
+ for(let i=0;i<count;i++){if(p+7>d.length)throw Error("Entry "+i+" header truncated");let key=stblU32(d,p);p+=4;let flags=d[p++],len=stblU16(d,p);p+=2;if(p+len>d.length)throw Error("Entry "+i+" string truncated");let text=decoder.decode(d.slice(p,p+len));p+=len;entries.push({key:key.toString(16).padStart(8,"0").toUpperCase(),keyNum:key,flags,text})}
+ if(p!==d.length)throw Error("STBL has "+(d.length-p)+" trailing bytes");
+ if(total!==0&&total!==entries.reduce((n,e)=>n+new TextEncoder().encode(e.text).length,0))throw Error("Header total string size mismatch");
+ return {version,compressed,count,total,entries,bytes:d.length}
+}
+function stblEncode(entries){
+ let enc=new TextEncoder(),chunks=[],total=0;if(entries.length>0xffffffff)throw Error("Too many STBL entries");
+ for(const e of entries){let key=stblKeyNumber(e.key),text=String(e.text??""),bytes=enc.encode(text);if(bytes.length>65535)throw Error("String exceeds uint16 byte length: "+e.key);total+=bytes.length;let b=new Uint8Array(7+bytes.length);b[0]=key&255;b[1]=(key>>>8)&255;b[2]=(key>>>16)&255;b[3]=(key>>>24)&255;b[4]=Number(e.flags||0)&255;b[5]=bytes.length&255;b[6]=bytes.length>>>8;b.set(bytes,7);chunks.push(b)}
+ let head=new Uint8Array(21);head.set([83,84,66,76],0);head[4]=5;head[5]=0;head[6]=0;let n=BigInt(entries.length);for(let i=0;i<8;i++){head[7+i]=Number(n&255n);n>>=8n}head[17]=total&255;head[18]=(total>>>8)&255;head[19]=(total>>>16)&255;head[20]=(total>>>24)&255;
+ let out=new Uint8Array(21+chunks.reduce((n,b)=>n+b.length,0));out.set(head);let p=21;chunks.forEach(b=>{out.set(b,p);p+=b.length});return out
+}
+function stblKeyNumber(key){let s=String(key??"").trim().replace(/^0x/i,"");if(!/^[0-9a-f]{1,8}$/i.test(s))throw Error("STBL key must be 32-bit hex: "+key);return parseInt(s,16)>>>0}
+function stblLoadFile(file,which){if(!file)return;file.arrayBuffer().then(buf=>{let parsed=stblParse(buf);if(which==="original")stblOriginal=parsed;else stblTranslation=parsed;stblCurrent=parsed;stblUpdateMeta();alert(which+" STBL loaded: "+parsed.entries.length+" entries")}).catch(e=>alert("STBL import error: "+e.message))}
+function stblUpdateMeta(){let el=document.getElementById("stblMeta");if(el)el.textContent=(stblOriginal?"Original: "+stblOriginal.entries.length:"Original not loaded")+" · "+(stblTranslation?"Translation: "+stblTranslation.entries.length:"Translation not loaded")+" · Current: "+(stblCurrent?stblCurrent.entries.length:"—")}
+function stblCompare(){if(!stblOriginal||!stblTranslation){alert("Load both Original and Translation STBL first");return}let a=new Map(stblOriginal.entries.map(e=>[e.key,e.text])),b=new Map(stblTranslation.entries.map(e=>[e.key,e.text])),added=0,changed=0,missing=0;for(const [k,v] of b){if(!a.has(k))added++;else if(a.get(k)!==v)changed++}for(const k of a.keys())if(!b.has(k))missing++;let h=document.getElementById("stblDiff");if(h)h.innerHTML='<div class="notice">Comparison · Original '+a.size+' / Translation '+b.size+' · New keys '+added+' · Changed text '+changed+' · Missing in translation '+missing+'</div>';stblCurrent=stblTranslation}
+function stblExportCurrent(){if(!stblCurrent){alert("Load an STBL first");return}let bytes=stblEncode(stblCurrent.entries);dbpfDownloadBytes(bytes,"STBL_export","stbl");}
+function stblBulkToTranslator(){if(!stblOriginal){alert("Load Original STBL first");return}let existing=new Map(translatorRows.map(r=>[String(r.key).toUpperCase(),r]));let added=0;for(const e of stblOriginal.entries){let key="0x"+e.key,old=existing.get(key);if(old){old.source=e.text}else{translatorRows.push({key,source:e.text,trans:"",status:"draft"});added++}}translatorAutoSave();translatorDraw();alert("Original STBL → Translator. Added "+added+" rows; existing rows updated by key.")}
+function stblExportFromTranslator(){let rows=translatorRows.filter(r=>r.key&&r.trans.trim());if(!rows.length){alert("No rows with key and translation to export");return}try{let entries=rows.map(r=>({key:stblKeyNumber(r.key),flags:0,text:r.trans})),bytes=stblEncode(entries);let parsed=stblParse(bytes.buffer);if(parsed.entries.length!==entries.length)throw Error("Round-trip count mismatch");dbpfDownloadBytes(bytes,(document.getElementById("translatorModName")?.value||"Translator")+"_"+(document.getElementById("translatorLanguage")?.value||"locale"),"stbl")}catch(e){alert("STBL export failed: "+e.message)}}
+function stblRunSelfTests(){let results=[],run=(name,fn)=>{try{fn();results.push({name,ok:true})}catch(e){results.push({name,ok:false,error:e.message}}},assert=(v,m)=>{if(!v)throw Error(m)};
+ run("Encode/parse round-trip UTF-8",()=>{let bytes=stblEncode([{key:"00000001",flags:0,text:"Hello"},{key:"ABCDEF12",flags:2,text:"Привет 🌿"}]);let p=stblParse(bytes.buffer);assert(p.entries.length===2,"entry count");assert(p.entries[1].text==="Привет 🌿","UTF-8 roundtrip");assert(p.entries[1].key==="ABCDEF12","key roundtrip")});
+ run("Reject bad magic",()=>{let b=stblEncode([{key:"00000001",text:"x"}]);b[0]=0;let ok=false;try{stblParse(b.buffer)}catch(e){ok=true}assert(ok,"bad magic accepted")});
+ run("Reject truncated entry",()=>{let b=stblEncode([{key:"00000001",text:"x"}]).slice(0,-1),ok=false;try{stblParse(b.buffer)}catch(e){ok=true}assert(ok,"truncated data accepted")});
+ let h=document.getElementById("stblTests");if(h)h.innerHTML='<div class="notice">'+results.filter(x=>x.ok).length+'/'+results.length+' passed</div>'+results.map(x=>'<div class="card" style="margin:5px 0">'+(x.ok?'✓':'✗')+' '+escapeTranslator(x.name)+(x.error?'<div class="meta">'+escapeTranslator(x.error)+'</div>':'')+'</div>').join("");return results}
 /* Package Engine v1 — DBPF v2.0 index reader, limited resource extraction */
 let dbpfCurrent=null,dbpfEntries=[];
 const DBPF_STBL_TYPE=0x220557DA;
