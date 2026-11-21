@@ -1132,18 +1132,19 @@ return '<div class="card" style="margin:8px 0"><div class="meta">Строка '+
 async function translatorAITranslateUntranslated(){
  const pending=translatorRows.map((r,i)=>({r,i})).filter(x=>!x.r.trans.trim()&&x.r.source.trim());
  if(!pending.length){alert("Нет непереведённых строк с оригиналом");return}
- const language=document.getElementById("translatorLanguage")?.value||"Russian (Русский)";
+ const language=document.getElementById("translatorLanguage")?.value||"Russian (Русский)",meta=document.getElementById("translatorMeta");
  let done=0;
  try{
   for(let start=0;start<pending.length;start+=25){
+   if(meta)meta.textContent="AI перевод · "+Math.min(start+1,pending.length)+"–"+Math.min(start+25,pending.length)+" / "+pending.length;
    let batch=pending.slice(start,start+25),res=await fetch("/api/translate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({target_language:language,texts:batch.map(x=>x.r.source)})});
    let data=await res.json();if(!res.ok)throw Error(data.error||("HTTP "+res.status));
    if(!Array.isArray(data.translations)||data.translations.length!==batch.length)throw Error("AI returned an invalid batch");
    batch.forEach((x,j)=>{let translated=String(data.translations[j]??"");if(translated.trim()){translatorRows[x.i].trans=translated;translatorRows[x.i].status="translated";done++}});
-   translatorAutoSave();translatorDraw();
+   translatorAutoSave();
   }
-  alert("AI перевёл "+done+" строк. Проверьте результат перед сборкой package.");
- }catch(e){alert("AI-перевод остановлен: "+e.message+"\nУбедитесь, что OPENAI_API_KEY задан в Railway Variables.");}
+  translatorDraw();translatorUpdateMeta();alert("AI перевёл "+done+" строк. Проверьте результат перед сборкой package.");
+ }catch(e){translatorDraw();translatorUpdateMeta();alert("AI-перевод остановлен: "+e.message+"\nУбедитесь, что OPENAI_API_KEY задан в Railway Variables.");}
 }
 function translatorSet(i,k,v){if(translatorRows[i]){translatorRows[i][k]=v;if(k==="trans"&&v.trim()&&translatorRows[i].status==="draft")translatorRows[i].status="translated";translatorAutoSave()}translatorDraw()}
 function translatorAddRow(){translatorRows.push({key:"",source:"",trans:"",status:"draft"});translatorAutoSave();translatorDraw()}
