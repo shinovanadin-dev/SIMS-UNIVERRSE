@@ -34,3 +34,8 @@ jobs:
           for file in /tmp/inline-*.js; do
             node --check "$file"
           done
+
+      - name: Validate Python server syntax
+        run: python3 -m py_compile server.py
+      - name: Run translation token regression tests
+        run: python3 -m unittest discover -s tests -v
