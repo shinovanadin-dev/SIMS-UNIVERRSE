@@ -1030,7 +1030,7 @@ function stblParse(buffer){
  let compressed=d[6];if(compressed!==0)throw Error("Compressed STBL flag is set; use package extraction first");
  let count=stblU64(d,7),total=stblU32(d,17);if(count>2000000)throw Error("Unreasonable STBL entry count");
  let p=21,entries=[],decoder=new TextDecoder("utf-8",{fatal:true});
- for(let i=0;i<count;i++){if(p+7>d.length)throw Error("Entry "+i+" header truncated");let key=stblU32(d,p);p+=4;let flags=d[p++],len=stblU16(d,p);p+=2;if(p+len>d.length)throw Error("Entry "+i+" string truncated");let text=decoder.decode(d.slice(p,p+len));p+=len;entries.push({key:key.toString(16).padStart(8,"0").toUpperCase(),keyNum:key,flags,text})}
+ let seenKeys=new Set();for(let i=0;i<count;i++){if(p+7>d.length)throw Error("Entry "+i+" header truncated");let key=stblU32(d,p);p+=4;let flags=d[p++],len=stblU16(d,p);p+=2;if(seenKeys.has(key))throw Error("Duplicate STBL key 0x"+key.toString(16).padStart(8,"0").toUpperCase());seenKeys.add(key);if(p+len>d.length)throw Error("Entry "+i+" string truncated");let text=decoder.decode(d.slice(p,p+len));p+=len;entries.push({key:key.toString(16).padStart(8,"0").toUpperCase(),keyNum:key,flags,text})}
  if(p!==d.length)throw Error("STBL has "+(d.length-p)+" trailing bytes");
  if(total!==0&&total!==entries.reduce((n,e)=>n+new TextEncoder().encode(e.text).length,0))throw Error("Header total string size mismatch");
  return {version,compressed,count,total,entries,bytes:d.length}
