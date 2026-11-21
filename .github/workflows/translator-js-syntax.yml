@@ -1,0 +1,36 @@
+name: Translator inline JavaScript syntax
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [feat/translator-core-v1]
+
+jobs:
+  syntax:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Extract inline scripts from index.html
+        run: |
+          python3 - <<'PY'
+          import re
+          from pathlib import Path
+          html = Path("index.html").read_text(encoding="utf-8")
+          scripts = re.findall(r"<script\b[^>]*>(.*?)</script\s*>", html, flags=re.S|re.I)
+          scripts = [s for s in scripts if s.strip()]
+          if not scripts:
+              raise SystemExit("No inline JavaScript found")
+          for i, script in enumerate(scripts):
+              Path(f"/tmp/inline-{i}.js").write_text(script, encoding="utf-8")
+          print(f"Extracted {len(scripts)} inline scripts")
+          PY
+      - name: Check JavaScript syntax
+        run: |
+          set -e
+          for file in /tmp/inline-*.js; do
+            node --check "$file"
+          done

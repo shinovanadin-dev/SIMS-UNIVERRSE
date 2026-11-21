@@ -10,3 +10,7 @@ Designed for Railway using Dockerfile. Container serves `index.html` on the plat
 
 ## Content policy
 Link to original creators and downloads. Do not mirror files without permission. Adult content should be gated and clearly labeled 18+.
+
+## Free AI translator (Groq)
+
+AI translation uses Groq's OpenAI-compatible Chat Completions API. Configure `GROQ_API_KEY` in Railway Variables. Default model is `openai/gpt-oss-120b`; override with `GROQ_TRANSLATOR_MODEL` if needed. The browser never receives the API key.
