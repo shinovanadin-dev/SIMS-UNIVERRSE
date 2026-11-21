@@ -1082,7 +1082,7 @@ async function dbpfRebuildPackage(replacements){
  let indexOffset=pos,index=new Uint8Array(4+newEntries.length*32);dbpfWrite32(index,0,0);let ip=4;
  for(let e of newEntries){dbpfWrite32(index,ip,e.type);ip+=4;dbpfWrite32(index,ip,e.group);ip+=4;dbpfWrite32(index,ip,e.instanceHi);ip+=4;dbpfWrite32(index,ip,e.instanceLo);ip+=4;dbpfWrite32(index,ip,e.offset);ip+=4;dbpfWrite32(index,ip,(e.size&0x7fffffff)|(e.compressedFlag?0x80000000:0));ip+=4;dbpfWrite32(index,ip,e.memSize);ip+=4;dbpfWrite16(index,ip,e.compression);dbpfWrite16(index,ip+2,e.committed);ip+=4}
  let out=new Uint8Array(indexOffset+index.length);out.set(header,0);let cursor=96;for(let p of payloads){out.set(p,cursor);cursor+=p.length}out.set(index,indexOffset);
- dbpfWrite32(out,36,newEntries.length);dbpfWrite32(out,44,index.length);dbpfWrite32(out,40,indexOffset);dbpfWrite32(out,64,indexOffset);
+ dbpfWrite32(out,36,newEntries.length);dbpfWrite32(out,44,index.length);dbpfWrite32(out,40,0);dbpfWrite32(out,64,indexOffset);
  // Re-open and verify the rebuilt index plus every resource TGI and unchanged payload.
  let checked=dbpfParse(out.buffer);if(checked.entries.length!==dbpfEntries.length)throw Error("Rebuild resource count verification failed");
  for(let i=0;i<dbpfEntries.length;i++){let before=dbpfEntries[i],after=checked.entries[i];if(before.type!==after.type||before.group!==after.group||before.instance!==after.instance)throw Error("Rebuild TGI mismatch at resource #"+i);if(!replacements.has(i)){let old=source.slice(before.offset,before.offset+before.size),fresh=out.slice(after.offset,after.offset+after.size);if(old.length!==fresh.length||old.some((v,k)=>v!==fresh[k]))throw Error("Unchanged resource payload mismatch at #"+i)}}
