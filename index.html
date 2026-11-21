@@ -1189,7 +1189,7 @@ async function translatorAITranslateUntranslated(){
    translatorAutoSave();
   }
   translatorDraw();translatorUpdateMeta();alert("AI перевёл "+done+" строк. Проверьте результат перед сборкой package.");return true;
- }catch(e){translatorDraw();translatorUpdateMeta();alert("AI-перевод остановлен: "+e.message+"\nУбедитесь, что OPENAI_API_KEY задан в Railway Variables.");}
+ }catch(e){translatorDraw();translatorUpdateMeta();alert("AI-перевод остановлен: "+e.message+"\nПроверьте GROQ_API_KEY в Railway Variables и попробуйте ещё раз.");}
 }
 function translatorSet(i,k,v){if(translatorRows[i]){translatorRows[i][k]=v;if(k==="trans"&&v.trim()&&translatorRows[i].status==="draft")translatorRows[i].status="translated";translatorAutoSave()}translatorDraw()}
 function translatorAddRow(){translatorRows.push({key:"",source:"",trans:"",status:"draft"});translatorAutoSave();translatorDraw()}
