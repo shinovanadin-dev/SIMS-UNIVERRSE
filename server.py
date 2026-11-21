@@ -56,8 +56,27 @@ class Handler(BaseHTTPRequestHandler):
             user_text="Target language: "+language+"\nTranslate these strings in order. Return only JSON with the translations array in the same order: "+json.dumps(texts,ensure_ascii=False)
             req=json.dumps({"model":MODEL,"messages":[{"role":"system","content":system},{"role":"user","content":user_text}],"temperature":0.2,"response_format":{"type":"json_object"}}).encode("utf-8")
             request=urllib.request.Request(GROQ_API_URL,data=req,headers={"Authorization":"Bearer "+key,"Content-Type":"application/json","Accept":"application/json","User-Agent":"SimsUniverseTranslator/1.0 (server-side)"},method="POST")
-            with urllib.request.urlopen(request,timeout=90) as response:
-                result=json.loads(response.read())
+            result=None
+            last_error=None
+            for attempt in range(3):
+                try:
+                    with urllib.request.urlopen(request,timeout=90) as response:
+                        result=json.loads(response.read())
+                    break
+                except urllib.error.HTTPError as e:
+                    last_error=e
+                    if e.code not in (429,500,502,503,504) or attempt==2:
+                        raise
+                    import time
+                    time.sleep(1 + attempt)
+                except (urllib.error.URLError, TimeoutError) as e:
+                    last_error=e
+                    if attempt==2:
+                        raise
+                    import time
+                    time.sleep(1 + attempt)
+            if result is None:
+                raise RuntimeError("Groq request failed after retries") from last_error
             output_text=result["choices"][0]["message"]["content"]
             decoded=json.loads(output_text)
             translations=decoded.get("translations") if isinstance(decoded,dict) else None
