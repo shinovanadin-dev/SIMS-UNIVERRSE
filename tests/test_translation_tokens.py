@@ -20,7 +20,7 @@ class TokenTests(unittest.TestCase):
     def test_markup_change_falls_back(self):
         self.assertEqual(NS['_safe_translation']('<b>Hi</b>', 'Привет'), '<b>Hi</b>')
     def test_placeholder_order_is_checked(self):
-        self.assertEqual(NS['_safe_translation']('{0} %s', '%s {0}'), '%s {0}')
+        self.assertEqual(NS['_safe_translation']('{0} %s', '%s {0}'), '{0} %s')
 
 if __name__ == '__main__':
     unittest.main()
