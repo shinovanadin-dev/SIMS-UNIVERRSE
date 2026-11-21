@@ -18,10 +18,10 @@ jobs:
           python - <<'PY'
           import re
           html = open("index.html", encoding="utf-8").read()
-          scripts = re.findall(r"<script\b[^>]*>([\s\S]*?)</script>", html, flags=re.I)
+          scripts = re.findall("<script[^>]*>(.*?)</script>", html, flags=re.I|re.S)
           if not scripts:
               raise SystemExit("No inline scripts found")
-          open("/tmp/site-inline.js", "w", encoding="utf-8").write("\n".join(scripts))
+          open("/tmp/site-inline.js", "w", encoding="utf-8").write(chr(10).join(scripts))
           print(f"Extracted {len(scripts)} inline script(s)")
           PY
       - name: Check JavaScript syntax
