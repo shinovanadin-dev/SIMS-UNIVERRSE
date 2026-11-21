@@ -92,7 +92,8 @@ class Handler(BaseHTTPRequestHandler):
             translations=decoded.get("translations") if isinstance(decoded,dict) else None
             if not isinstance(translations,list) or len(translations)!=len(texts) or not all(isinstance(x,str) for x in translations):
                 raise ValueError("Model output did not match expected translations array")
-            translations=[_safe_translation(src, out) for src, out in zip(texts, translations)]\n            self._json(200,{"translations":translations})
+            translations=[_safe_translation(src, out) for src, out in zip(texts, translations)]
+            self._json(200,{"translations":translations})
         except urllib.error.HTTPError as e:
             detail=e.read(1500).decode("utf-8","replace")
             self._json(502,{"error":"Groq API error "+str(e.code)+": "+detail})
