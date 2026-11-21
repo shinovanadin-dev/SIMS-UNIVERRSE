@@ -1032,12 +1032,12 @@ function stblParse(buffer){
  let p=21,entries=[],decoder=new TextDecoder("utf-8",{fatal:true});
  let seenKeys=new Set();for(let i=0;i<count;i++){if(p+7>d.length)throw Error("Entry "+i+" header truncated");let key=stblU32(d,p);p+=4;let flags=d[p++],len=stblU16(d,p);p+=2;if(seenKeys.has(key))throw Error("Duplicate STBL key 0x"+key.toString(16).padStart(8,"0").toUpperCase());seenKeys.add(key);if(p+len>d.length)throw Error("Entry "+i+" string truncated");let text=decoder.decode(d.slice(p,p+len));p+=len;entries.push({key:key.toString(16).padStart(8,"0").toUpperCase(),keyNum:key,flags,text})}
  if(p!==d.length)throw Error("STBL has "+(d.length-p)+" trailing bytes");
- if(total!==0&&total!==entries.reduce((n,e)=>n+new TextEncoder().encode(e.text).length,0))throw Error("Header total string size mismatch");
+ if(total!==0&&total!==entries.reduce((n,e)=>n+new TextEncoder().encode(e.text).length+1,0))throw Error("Header total string size mismatch");
  return {version,compressed,count,total,entries,bytes:d.length}
 }
 function stblEncode(entries){
  let enc=new TextEncoder(),chunks=[],total=0;if(entries.length>0xffffffff)throw Error("Too many STBL entries");
- let seenKeys=new Set();for(const e of entries){let key=stblKeyNumber(e.key);if(seenKeys.has(key))throw Error("Duplicate STBL key 0x"+key.toString(16).padStart(8,"0").toUpperCase());seenKeys.add(key);let text=String(e.text??""),bytes=enc.encode(text);if(bytes.length>65535)throw Error("String exceeds uint16 byte length: "+e.key);total+=bytes.length;let b=new Uint8Array(7+bytes.length);b[0]=key&255;b[1]=(key>>>8)&255;b[2]=(key>>>16)&255;b[3]=(key>>>24)&255;b[4]=Number(e.flags||0)&255;b[5]=bytes.length&255;b[6]=bytes.length>>>8;b.set(bytes,7);chunks.push(b)}
+ let seenKeys=new Set();for(const e of entries){let key=stblKeyNumber(e.key);if(seenKeys.has(key))throw Error("Duplicate STBL key 0x"+key.toString(16).padStart(8,"0").toUpperCase());seenKeys.add(key);let text=String(e.text??""),bytes=enc.encode(text);if(bytes.length>65535)throw Error("String exceeds uint16 byte length: "+e.key);total+=bytes.length+1;let b=new Uint8Array(7+bytes.length);b[0]=key&255;b[1]=(key>>>8)&255;b[2]=(key>>>16)&255;b[3]=(key>>>24)&255;b[4]=Number(e.flags||0)&255;b[5]=bytes.length&255;b[6]=bytes.length>>>8;b.set(bytes,7);chunks.push(b)}
  let head=new Uint8Array(21);head.set([83,84,66,76],0);head[4]=5;head[5]=0;head[6]=0;let n=BigInt(entries.length);for(let i=0;i<8;i++){head[7+i]=Number(n&255n);n>>=8n}head[17]=total&255;head[18]=(total>>>8)&255;head[19]=(total>>>16)&255;head[20]=(total>>>24)&255;
  let out=new Uint8Array(21+chunks.reduce((n,b)=>n+b.length,0));out.set(head);let p=21;chunks.forEach(b=>{out.set(b,p);p+=b.length});return out
 }
@@ -1110,11 +1110,31 @@ function dbpfRender(){
  if(meta)meta.textContent=dbpfCurrent.name+" · "+dbpfEntries.length+" resources · "+dbpfEntries.filter(e=>e.type===DBPF_STBL_TYPE).length+" STBL · Showing "+Math.min(rows.length,150)+"/"+rows.length;
  host.innerHTML=rows.slice(0,150).map(e=>{
   let common='<div class="card" style="margin:7px 0"><strong>#'+e.index+' · '+dbpfTypeName(e.type)+'</strong><div class="meta">Group: 0x'+e.group.toString(16).toUpperCase().padStart(8,"0")+' · Instance: '+e.instance+' · Stored: '+e.size+' B · Memory: '+e.memSize+' B · Compression: 0x'+e.compression.toString(16).toUpperCase().padStart(4,"0")+'</div>';
-  if(e.type===DBPF_STBL_TYPE)common+='<div class="toolbar"><button class="btn alt" onclick="dbpfLoadSTBLToTranslator(dbpfEntries['+e.index+'])">STBL → Translator</button><button class="btn" onclick="dbpfTranslateAndRebuildSTBL('+e.index+')">AI Translate + rebuild package</button><button class="btn alt" onclick="dbpfExtractSTBL(dbpfEntries['+e.index+'])">Extract STBL</button></div>';
-  else common+='<div class="toolbar"><button class="btn alt" onclick="dbpfExtractGeneric(dbpfEntries['+e.index+'])">Extract resource</button></div>';
+  if(e.type===DBPF_STBL_TYPE){let loc=Number(BigInt("0x"+e.instance)>>56n),suffix=BigInt("0x"+e.instance)&0x00FFFFFFFFFFFFFFn,ru=loc===0?dbpfEntries.find(x=>x.type===DBPF_STBL_TYPE&&x.group===e.group&&(BigInt("0x"+x.instance)>>56n)===18n&&((BigInt("0x"+x.instance)&0x00FFFFFFFFFFFFFFn)===suffix)):null;common+='<div class="toolbar"><button class="btn alt" onclick="dbpfLoadSTBLToTranslator(dbpfEntries['+e.index+'])">STBL → Translator</button><button class="btn" onclick="dbpfTranslateAndRebuildSTBL('+e.index+')">AI Translate + rebuild package</button>'+(ru?'<button class="btn" onclick="dbpfTranslateEnglishToRussian('+e.index+')">ENG → RUS · AI translate + rebuild</button>':'')+'<button class="btn alt" onclick="dbpfExtractSTBL(dbpfEntries['+e.index+'])">Extract STBL</button></div>'}else common+='<div class="toolbar"><button class="btn alt" onclick="dbpfExtractGeneric(dbpfEntries['+e.index+'])">Extract resource</button></div>';
   return common+'</div>'
  }).join("");
  if(rows.length>150)host.insertAdjacentHTML("beforeend",'<div class="notice">List limited to first 150 matches. Search/filter to find more resources.</div>');
+}
+async function dbpfTranslateEnglishToRussian(sourceIndex){
+ let sourceEntry=dbpfEntries[sourceIndex];if(!dbpfCurrent||!sourceEntry||sourceEntry.type!==DBPF_STBL_TYPE||(BigInt("0x"+sourceEntry.instance)>>56n)!==0n){alert("Select an English (ENG_US) STBL resource");return}
+ let suffix=BigInt("0x"+sourceEntry.instance)&0x00FFFFFFFFFFFFFFn;
+ let targetEntry=dbpfEntries.find(e=>e.type===DBPF_STBL_TYPE&&e.group===sourceEntry.group&&(BigInt("0x"+e.instance)>>56n)===18n&&((BigInt("0x"+e.instance)&0x00FFFFFFFFFFFFFFn)===suffix));
+ if(!targetEntry){alert("Russian (RUS_RU) STBL for this string table was not found");return}
+ try{
+  let sourceRaw=await dbpfExtract(sourceEntry),targetRaw=await dbpfExtract(targetEntry);
+  let sourceParsed=stblParse(sourceRaw.buffer.slice(sourceRaw.byteOffset,sourceRaw.byteOffset+sourceRaw.byteLength));
+  let targetParsed=stblParse(targetRaw.buffer.slice(targetRaw.byteOffset,targetRaw.byteOffset+targetRaw.byteLength));
+  let targetMap=new Map(targetParsed.entries.map(e=>[e.key.toUpperCase(),e]));
+  let merged=targetParsed.entries.slice(),missing=0;
+  sourceParsed.entries.forEach(s=>{if(!targetMap.has(s.key.toUpperCase())){merged.push({key:s.key,flags:s.flags,text:s.text});missing++}});
+  packageSTBLTarget=targetEntry;packageSTBLOriginal={...targetParsed,entries:merged};
+  translatorRows=sourceParsed.entries.map(s=>{let t=targetMap.get(s.key.toUpperCase()),already=t&&t.text.trim()&&t.text.trim()!==s.text.trim();return {key:"0x"+s.key,source:s.text,trans:already?t.text:"",status:already?"translated":"draft"}});
+  translatorAutoSave();translatorDraw();translatorUpdateMeta();
+  let meta=document.getElementById("translatorMeta");if(meta)meta.textContent="ENG_US → RUS_RU · "+sourceParsed.entries.length+" strings · "+missing+" missing RU keys added";
+  let name=document.getElementById("translatorModName");if(name)name.value=dbpfCurrent.name+" · ENG_US → RUS_RU";
+  let translated=await translatorAITranslateUntranslated();if(!translated)throw Error("AI translation did not finish; rebuild cancelled");
+  await dbpfApplyTranslatorToPackage();
+ }catch(e){alert("ENG → RUS package translation failed: "+e.message)}
 }
 async function dbpfTranslateAndRebuildSTBL(index){
  let entry=dbpfEntries[index];if(!dbpfCurrent||!entry||entry.type!==DBPF_STBL_TYPE){alert("Select a valid STBL resource");return}
