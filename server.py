@@ -4,7 +4,7 @@ import os, json, urllib.request, urllib.error
 
 import re
 
-TOKEN_PATTERN = re.compile(r"(?:<[^>]+>|\\{[^{}]*\\}|\\[[A-Z0-9_]+\\]|%[0-9$]*[sdifouxXeEgGcCaA]|§)")
+TOKEN_PATTERN = re.compile(r"(?:<[^>]+>|\{[^{}]*\}|\[[A-Z0-9_]+\]|%[0-9$]*[sdifouxXeEgGcCaA]|§)")
 def _tokens(text):
     return TOKEN_PATTERN.findall(text)
 def _safe_translation(original, translated):
