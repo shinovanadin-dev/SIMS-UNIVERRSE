@@ -2,6 +2,16 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 from urllib.parse import urlsplit
 import os, json, urllib.request, urllib.error
 
+import re
+
+TOKEN_PATTERN = re.compile(r"(?:<[^>]+>|\\{[^{}]*\\}|\\[[A-Z0-9_]+\\]|%[0-9$]*[sdifouxXeEgGcCaA]|§)")
+def _tokens(text):
+    return TOKEN_PATTERN.findall(text)
+def _safe_translation(original, translated):
+    # Prevent AI output from damaging game placeholders/markup: if any token changes,
+    # keep the source string intact rather than exporting a broken translation.
+    return translated if _tokens(original) == _tokens(translated) else original
+
 GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
 MODEL = os.environ.get("GROQ_TRANSLATOR_MODEL", "openai/gpt-oss-120b")
 MAX_BODY = 65536
@@ -82,7 +92,7 @@ class Handler(BaseHTTPRequestHandler):
             translations=decoded.get("translations") if isinstance(decoded,dict) else None
             if not isinstance(translations,list) or len(translations)!=len(texts) or not all(isinstance(x,str) for x in translations):
                 raise ValueError("Model output did not match expected translations array")
-            self._json(200,{"translations":translations})
+            translations=[_safe_translation(src, out) for src, out in zip(texts, translations)]\n            self._json(200,{"translations":translations})
         except urllib.error.HTTPError as e:
             detail=e.read(1500).decode("utf-8","replace")
             self._json(502,{"error":"Groq API error "+str(e.code)+": "+detail})
