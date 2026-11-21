@@ -1068,19 +1068,25 @@ function dbpfWrite32(d,o,v){d[o]=v&255;d[o+1]=(v>>>8)&255;d[o+2]=(v>>>16)&255;d[
 function dbpfWrite16(d,o,v){d[o]=v&255;d[o+1]=(v>>>8)&255}
 async function dbpfRebuildPackage(replacements){
  if(!dbpfCurrent)throw Error("No package loaded");
+ if(!(replacements instanceof Map))throw Error("Replacement map required");
  let source=dbpfCurrent.bytes,header=source.slice(0,96),payloads=[],newEntries=[],pos=96;
  for(let e of dbpfEntries){
   let repl=replacements.get(e.index),stored,compression,memSize,compressedFlag,committed;
-  if(repl){stored=new Uint8Array(repl);compression=0;memSize=stored.length;compressedFlag=false;committed=1}
+  if(repl!==undefined&&repl!==null){stored=new Uint8Array(repl);compression=0;memSize=stored.length;compressedFlag=false;committed=1}
   else{stored=source.slice(e.offset,e.offset+e.size);compression=e.compression;memSize=e.memSize;compressedFlag=e.compressedFlag;committed=e.committed}
+  if(stored.length>0x7fffffff)throw Error("Resource exceeds DBPF size field limit");
   while(pos%4){payloads.push(new Uint8Array([0]));pos++}
   let offset=pos;payloads.push(stored);pos+=stored.length;
   newEntries.push({...e,offset,size:stored.length,memSize,compression,compressedFlag,committed});
  }
  let indexOffset=pos,index=new Uint8Array(4+newEntries.length*32);dbpfWrite32(index,0,0);let ip=4;
  for(let e of newEntries){dbpfWrite32(index,ip,e.type);ip+=4;dbpfWrite32(index,ip,e.group);ip+=4;dbpfWrite32(index,ip,e.instanceHi);ip+=4;dbpfWrite32(index,ip,e.instanceLo);ip+=4;dbpfWrite32(index,ip,e.offset);ip+=4;dbpfWrite32(index,ip,(e.size&0x7fffffff)|(e.compressedFlag?0x80000000:0));ip+=4;dbpfWrite32(index,ip,e.memSize);ip+=4;dbpfWrite16(index,ip,e.compression);dbpfWrite16(index,ip+2,e.committed);ip+=4}
- let out=new Uint8Array(indexOffset+index.length);out.set(header,0);let cursor=96;for(let p of payloads){out.set(p,cursor);cursor+=p.length}
- out.set(index,indexOffset);dbpfWrite32(out,36,newEntries.length);dbpfWrite32(out,44,index.length);dbpfWrite32(out,64,indexOffset);return out.buffer
+ let out=new Uint8Array(indexOffset+index.length);out.set(header,0);let cursor=96;for(let p of payloads){out.set(p,cursor);cursor+=p.length}out.set(index,indexOffset);
+ dbpfWrite32(out,36,newEntries.length);dbpfWrite32(out,44,index.length);dbpfWrite32(out,40,indexOffset);dbpfWrite32(out,64,indexOffset);
+ // Re-open and verify the rebuilt index plus every resource TGI and unchanged payload.
+ let checked=dbpfParse(out.buffer);if(checked.entries.length!==dbpfEntries.length)throw Error("Rebuild resource count verification failed");
+ for(let i=0;i<dbpfEntries.length;i++){let before=dbpfEntries[i],after=checked.entries[i];if(before.type!==after.type||before.group!==after.group||before.instance!==after.instance)throw Error("Rebuild TGI mismatch at resource #"+i);if(!replacements.has(i)){let old=source.slice(before.offset,before.offset+before.size),fresh=out.slice(after.offset,after.offset+after.size);if(old.length!==fresh.length||old.some((v,k)=>v!==fresh[k]))throw Error("Unchanged resource payload mismatch at #"+i)}}
+ return out.buffer
 }
 async function dbpfReplaceSTBL(entry,file){
  try{let raw=new Uint8Array(await file.arrayBuffer()),parsed=stblParse(raw.buffer.slice(raw.byteOffset,raw.byteOffset+raw.byteLength));let rebuilt=await dbpfRebuildPackage(new Map([[entry.index,raw]]));let verify=dbpfParse(rebuilt);let target=verify.entries.find(e=>e.index===entry.index);if(!target)throw Error("Replacement entry missing on verification");let verifyRaw=new Uint8Array(rebuilt).slice(target.offset,target.offset+target.size),round=stblParse(verifyRaw.buffer.slice(verifyRaw.byteOffset,verifyRaw.byteOffset+verifyRaw.byteLength));if(round.entries.length!==parsed.entries.length)throw Error("STBL verification row count mismatch");if(target.type!==entry.type||target.group!==entry.group||target.instance!==entry.instance)throw Error("Replacement TGI mismatch");if(verify.entries.length!==dbpfEntries.length)throw Error("Resource count changed during rebuild");for(let j=0;j<dbpfEntries.length;j++){let before=dbpfEntries[j],after=verify.entries[j];if(before.index!==after.index||before.type!==after.type||before.group!==after.group||before.instance!==after.instance)throw Error("Resource index/TGI changed at #"+j);if(j!==entry.index){let a=dbpfCurrent.bytes.slice(before.offset,before.offset+before.size),b=new Uint8Array(rebuilt).slice(after.offset,after.offset+after.size);if(a.length!==b.length||a.some((v,k)=>v!==b[k]))throw Error("Unchanged resource bytes differ at #"+j)}}dbpfDownloadBytes(new Uint8Array(rebuilt),dbpfCurrent.name.replace(/\.[^.]+$/,"")+"_edited","package");alert("Package rebuilt and verified by reopening DBPF/STBL. Replaced "+parsed.entries.length+" strings. Original package was not overwritten.");}catch(e){alert("Package Editor error: "+e.message)}
