@@ -7,7 +7,7 @@ from collections import Counter
 
 # Preserve markup, named/positional placeholders, printf formats, Sims markup,
 # and escaped control sequences. Token counts matter; order may legitimately change.
-TOKEN_PATTERN = re.compile(r"(?:<[^>]+>|\{[^{}]*\}|\[[A-Z0-9_]+\]|%[0-9$]*[sdifouxXeEgGcCaA]|§|\\[nrt])")
+TOKEN_PATTERN = re.compile(r"(?:<[^>]+>|\{[^{}]*\}|\[[A-Z0-9_]+\]|%(?:[0-9]+\\$)?[0-9]*[sdifouxXeEgGcCaA]|§|\\[nrt])")
 def _tokens(text):
     return TOKEN_PATTERN.findall(text)
 def _linebreak_signature(text):
