@@ -65,8 +65,8 @@ test('unknown index flags rejected',()=>{let b=fixture([entry(1)],8);throws(()=>
 test('index outside package bounds rejected',()=>{let b=fixture([entry(1)]),d=new Uint8Array(b);d[64]=255;throws(()=>parse(d.buffer),/Index is outside/);});
 test('index overlap header rejected',()=>{let b=fixture([entry(1)]),d=new Uint8Array(b);d[64]=80;throws(()=>parse(d.buffer),/overlaps header/);});
 test('truncated index entry rejected',()=>{let b=fixture([entry(1)]),d=new Uint8Array(b);d[44]=8;throws(()=>parse(d.buffer),/Index truncated/);});
-test('resource payload out-of-bounds rejected',()=>{let b=fixture([entry(1)]),d=new Uint8Array(b);d[96]=0;d[97]=0;d[98]=0;d[99]=0;throws(()=>parse(d.buffer),/invalid payload bounds/);});
-test('payload cannot overlap index',()=>{let b=fixture([entry(1)]),d=new Uint8Array(b);d[96]=1;d[97]=0;d[98]=0;d[99]=0;throws(()=>parse(d.buffer),/overlaps DBPF index/);});
+test('resource payload out-of-bounds rejected',()=>{let b=fixture([entry(1)]),d=new Uint8Array(b),ix=d[64]|d[65]<<8|d[66]<<16|d[67]<<24;let off=ix+20;d[off]=0xF0;d[off+1]=0xFF;d[off+2]=0xFF;d[off+3]=0x7F;throws(()=>parse(d.buffer),/invalid payload bounds/);});
+test('payload cannot overlap index',()=>{let b=fixture([entry(1)]),d=new Uint8Array(b),ix=d[64]|d[65]<<8|d[66]<<16|d[67]<<24,off=ix-2,field=ix+20;d[field]=off&255;d[field+1]=(off>>>8)&255;d[field+2]=(off>>>16)&255;d[field+3]=(off>>>24)&255;throws(()=>parse(d.buffer),/overlaps DBPF index/);});
 test('extended compression metadata decoded',()=>{const p=parse(fixture([entry(1,{comp:0xFFFF,commit:0x1234})]));assert(p.entries[0].compression===0xFFFF);assert(p.entries[0].committed===0x1234);assert(p.entries[0].isInternal);});
 test('zero-size resource metadata accepted',()=>{const p=parse(fixture([entry(1,{offset:0,size:0,mem:0,ext:false})]));assert(p.entries[0].size===0);});
 test('empty package with zero index accepted',()=>{const p=parse(fixture([]));assert(p.count===0&&p.entries.length===0);});
