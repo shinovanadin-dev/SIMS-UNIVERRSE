@@ -36,8 +36,8 @@ class TokenTests(unittest.TestCase):
         self.assertEqual(self.safe(src, dst), src)
 
     def test_printf_width_and_position_tokens(self):
-        src = 'Value: %2$s, score %04d'
-        dst = 'Счёт %04d: %2$s'
+        src = 'Value: %2$s, score %1$04d'
+        dst = 'Счёт %1$04d: %2$s'
         self.assertEqual(self.safe(src, dst), dst)
 
     def test_escaped_control_tokens_preserved(self):
