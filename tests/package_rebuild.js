@@ -10,7 +10,7 @@ function makePackage(payloads,metadata=[]){let pos=96,ents=[];const b0=new Uint8
 const idx=new Uint8Array(4+ents.reduce((n,e)=>n+32,0));u32(idx,0,0);let q=4;for(let e of ents){u32(idx,q,e.type);q+=4;u32(idx,q,e.group);q+=4;u32(idx,q,e.hi);q+=4;u32(idx,q,e.lo);q+=4;u32(idx,q,e.offset);q+=4;u32(idx,q,(e.size&0x7fffffff)|(e.extended?0x80000000:0));q+=4;u32(idx,q,e.mem);q+=4;u16(idx,q,e.comp);u16(idx,q+2,e.commit);q+=4}
 const out=new Uint8Array(pos+idx.length);out.set(b0);let cursor=96;ents.forEach(e=>{out.set(e.payload,cursor);cursor+=e.payload.length});out.set(idx,pos);u32(out,36,ents.length);u32(out,44,idx.length);u32(out,64,pos);return out.buffer}
 function bytes(a){return Uint8Array.from(a)}
-const tests=[];function test(n,fn){try{fn();tests.push({n,ok:true})}catch(e){tests.push({n,ok:false,e:e.message})}}
+const tests=[];async function test(n,fn){try{await fn();tests.push({n,ok:true})}catch(e){tests.push({n,ok:false,e:e.message})}}
 function assert(v,m){if(!v)throw Error(m||'assertion failed')}
 function same(a,b){assert(a.length===b.length,'byte length differs');for(let i=0;i<a.length;i++)if(a[i]!==b[i])throw Error('byte differs at '+i)}
 async function run(){
