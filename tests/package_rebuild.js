@@ -1,7 +1,7 @@
 // Rebuild harness exercises the production DBPF rebuild routine from index.html.
 const fs=require('fs'),vm=require('vm');
 const source=fs.readFileSync('index.html','utf8');
-function extract(name,next){const a=source.indexOf('function '+name+'('),b=source.indexOf('function '+next+'(',a);if(a<0||b<0)throw Error('Missing function '+name);return source.slice(a,b).trim();}
+function extract(name,next){const a=source.indexOf('function '+name+'(');let b=source.indexOf('async function '+next+'(',a);if(b<0)b=source.indexOf('function '+next+'(',a);if(a<0||b<0)throw Error('Missing function '+name);return source.slice(a,b).trim();}
 const script=[extract('dbpfU32','dbpfU16'),extract('dbpfU16','dbpfParse'),extract('dbpfParse','dbpfTypeName'),extract('dbpfWrite32','dbpfWrite16'),extract('dbpfWrite16','dbpfRebuildPackage'),extract('dbpfRebuildPackage','dbpfReplaceSTBL')].join('\n');
 const ctx={Uint8Array,BigInt,Map,Set,Error,Number};vm.runInNewContext(script,ctx);
 function u32(b,p,v){b[p]=v&255;b[p+1]=v>>>8&255;b[p+2]=v>>>16&255;b[p+3]=v>>>24&255}
