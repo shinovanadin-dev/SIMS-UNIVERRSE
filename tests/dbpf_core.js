@@ -56,7 +56,7 @@ const tests=[];
 function test(name,fn){try{fn();tests.push({name,ok:true})}catch(e){tests.push({name,ok:false,error:e.message})}}
 function assert(v,msg){if(!v)throw new Error(msg||'assertion failed')}
 function throws(fn,pattern){let did=false;try{fn()}catch(e){did=pattern?pattern.test(e.message):true}assert(did,'expected parser rejection'+(pattern?' matching '+pattern:''))}
-test('valid compact constant-TGI index parses',()=>{const p=parse(fixture([entry(1),entry(2,{offset:100})));assert(p.entries.length===2);assert(p.flags===7);assert(p.entries[1].instance==='0000000000000002')});
+test('valid compact constant-TGI index parses',()=>{const p=parse(fixture([entry(1),entry(2,{offset:100})]));assert(p.entries.length===2);assert(p.flags===7);assert(p.entries[1].instance==='0000000000000002')});
 test('valid full-TGI variable index parses',()=>{const p=parse(fixture([entry(1,{type:1,group:2,instance:0x1122334455667788n}),entry(2,{type:3,group:4,instance:0xAABBCCDDEEFF0011n})]));assert(p.flags===0);assert(p.entries[1].type===3&&p.entries[1].group===4);assert(p.entries[1].instance==='AABBCCDDEEFF0011')});
 test('short header is rejected',()=>throws(()=>parse(new Uint8Array(95).buffer),/header truncated/));
 test('non-DBPF signature rejected',()=>{let b=fixture([entry(1)]);new Uint8Array(b)[0]=88;throws(()=>parse(b),/Not a DBPF/);});
