@@ -39,6 +39,8 @@ jobs:
         run: node tests/dbpf_core.js
       - name: Run STBL core regression tests
         run: node tests/stbl_core.js
+      - name: Run package rebuild regression tests
+        run: node tests/package_rebuild.js
       - name: Validate Python server syntax
         run: python3 -m py_compile server.py
       - name: Run translation token regression tests
