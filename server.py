@@ -3,14 +3,19 @@ from urllib.parse import urlsplit
 import os, json, urllib.request, urllib.error
 
 import re
+from collections import Counter
 
-TOKEN_PATTERN = re.compile(r"(?:<[^>]+>|\{[^{}]*\}|\[[A-Z0-9_]+\]|%[0-9$]*[sdifouxXeEgGcCaA]|§)")
+# Preserve markup, named/positional placeholders, printf formats, Sims markup,
+# and escaped control sequences. Token counts matter; order may legitimately change.
+TOKEN_PATTERN = re.compile(r"(?:<[^>]+>|\{[^{}]*\}|\[[A-Z0-9_]+\]|%[0-9$]*[sdifouxXeEgGcCaA]|§|\\\\[nrt])")
 def _tokens(text):
     return TOKEN_PATTERN.findall(text)
+def _linebreak_signature(text):
+    return (text.count("\\r\\n"), text.count("\\n") - text.count("\\r\\n"), text.count("\\r") - text.count("\\r\\n"))
 def _safe_translation(original, translated):
-    # Prevent AI output from damaging game placeholders/markup: if any token changes,
-    # keep the source string intact rather than exporting a broken translation.
-    return translated if _tokens(original) == _tokens(translated) else original
+    # Token multiplicity must remain exact; translated language may reorder tokens.
+    # Line break type/count is also preserved to avoid breaking UI layout.
+    return translated if Counter(_tokens(original)) == Counter(_tokens(translated)) and _linebreak_signature(original) == _linebreak_signature(translated) else original
 
 GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
 MODEL = os.environ.get("GROQ_TRANSLATOR_MODEL", "openai/gpt-oss-120b")
