@@ -1198,10 +1198,10 @@ async function translatorAITranslateUntranslated(){
    let batch=pending.slice(start,start+25),res=await fetch("/api/translate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({target_language:language,texts:batch.map(x=>x.r.source)})});
    let data=await res.json();if(!res.ok)throw Error(data.error||("HTTP "+res.status));
    if(!Array.isArray(data.translations)||data.translations.length!==batch.length)throw Error("AI returned an invalid batch");
-   batch.forEach((x,j)=>{let translated=String(data.translations[j]??"");if(translated.trim()){translatorRows[x.i].trans=translated;translatorRows[x.i].status="translated";done++}});
+   let rejected=0;batch.forEach((x,j)=>{let translated=String(data.translations[j]??"");if(translated.trim()){let candidate={source:x.r.source,trans:translated},check=translatorTokenCheck(candidate);if(!check.ok){translatorRows[x.i].status="review";rejected++;return}translatorRows[x.i].trans=translated;translatorRows[x.i].status="translated";done++}});
    translatorAutoSave();
   }
-  translatorDraw();translatorUpdateMeta();alert("AI перевёл "+done+" строк. Проверьте результат перед сборкой package.");return true;
+  translatorDraw();translatorUpdateMeta();alert("AI перевёл "+done+" строк. Отклонено из-за несовпадения токенов: "+rejected+". Такие строки помечены «Проверить» и не записаны в перевод. Проверьте результат перед сборкой package.");return true;
  }catch(e){translatorDraw();translatorUpdateMeta();alert("AI-перевод остановлен: "+e.message+"\nПроверьте GROQ_API_KEY в Railway Variables и попробуйте ещё раз.");}
 }
 function translatorSet(i,k,v){if(translatorRows[i]){translatorRows[i][k]=v;if(k==="trans"&&v.trim()&&translatorRows[i].status==="draft")translatorRows[i].status="translated";translatorAutoSave()}translatorDraw()}
