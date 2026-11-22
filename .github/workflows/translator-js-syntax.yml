@@ -35,6 +35,8 @@ jobs:
             node --check "$file"
           done
 
+      - name: Run translator batch recovery tests
+        run: node tests/translator_batch_recovery.js
       - name: Run DBPF core regression tests
         run: node tests/dbpf_core.js
       - name: Run DBPF internal compression regression tests
