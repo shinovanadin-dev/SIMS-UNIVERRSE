@@ -14,7 +14,7 @@ test('preserve entry flags',()=>{let p=parse(fixture([{key:'10',flags:255,text:'
 test('empty STBL valid',()=>{let p=parse(fixture([]).buffer);assert(p.count===0&&p.entries.length===0,'empty table')});
 test('empty strings are preserved',()=>{let p=parse(fixture([{key:'1',text:''}]).buffer);assert(p.entries[0].text==='','empty string lost')});
 test('duplicate key rejected by encoder',()=>throws(()=>encode([{key:'1',text:'a'},{key:'1',text:'b'}]),/Duplicate/));
-test('duplicate key rejected by parser',()=>{let b=fixture([{key:'1',text:'a'},{key:'2',text:'b'}]);b[21]=1;b[22]=0;b[23]=0;b[24]=0;throws(()=>parse(b.buffer),/Duplicate/);});
+test('duplicate key rejected by parser',()=>{let b=fixture([{key:'1',text:'a'},{key:'2',text:'b'}]);b[29]=1;b[30]=0;b[31]=0;b[32]=0;throws(()=>parse(b.buffer),/Duplicate/);});
 test('bad magic rejected',()=>{let b=fixture([{key:'1',text:'x'}]);b[0]=0;throws(()=>parse(b.buffer),/Invalid STBL magic/);});
 test('unsupported version rejected',()=>{let b=fixture([{key:'1',text:'x'}]);b[4]=4;throws(()=>parse(b.buffer),/Unsupported STBL version/);});
 test('compressed flag rejected for raw parser',()=>{let b=fixture([{key:'1',text:'x'}]);b[6]=1;throws(()=>parse(b.buffer),/Compressed STBL flag/);});
