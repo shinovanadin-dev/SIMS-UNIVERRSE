@@ -1,7 +1,7 @@
 // End-to-end synthetic DBPF -> resource extraction -> STBL parse regression.
 const fs=require('fs'),vm=require('vm');
 const src=fs.readFileSync('index.html','utf8');
-function get(name,next){let a=src.indexOf('function '+name+'('),rx=new RegExp('(?:async\\s+)?function\\s+'+next+'\\\\('),m=rx.exec(src.slice(a)),b=m?a+m.index: -1;if(a<0||b<0)throw Error('Missing '+name+' or boundary '+next);return src.slice(a,b).trim()}
+function get(name,next){let a=src.indexOf('function '+name+'('),rx=new RegExp('(?:async\\s+)?function\\s+'+next+'\\('),m=rx.exec(src.slice(a)),b=m?a+m.index: -1;if(a<0||b<0)throw Error('Missing '+name+' or boundary '+next);return src.slice(a,b).trim()}
 function getAsync(name,next){return get(name,next)}
 const script=[get('dbpfU32','dbpfU16'),get('dbpfU16','dbpfParse'),get('dbpfParse','dbpfTypeName'),get('stblU16','stblU32'),get('stblU32','stblU64'),get('stblU64','stblParse'),get('stblParse','stblEncode'),get('dbpfInternalDecode','dbpfExtract'),getAsync('dbpfExtract','dbpfDownload')].join('\n');
 const ctx={Uint8Array,BigInt,TextDecoder,TextEncoder,Map,Set,Error,Number,Response,Blob,window:{},console};vm.runInNewContext(script,ctx);
