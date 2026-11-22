@@ -6,7 +6,7 @@ const end=source.indexOf('async function dbpfExtract(',start);
 if(start<0||end<0)throw Error('Decoder source missing');
 const ctx={Uint8Array,Error};vm.runInNewContext(source.slice(start,end).trim(),ctx);
 const decode=ctx.dbpfInternalDecode;
-const tests=[];function test(name,fn){try{fn();tests.push({name,ok:true})}catch(e){tests.push({name,ok:false,error:e.message}})}
+const tests=[];function test(name,fn){try{fn();tests.push({name,ok:true})}catch(e){tests.push({name,ok:false,error:e.message})}}
 function assert(v,m){if(!v)throw Error(m||'assertion failed')}
 function same(a,b){assert(a.length===b.length,'output length mismatch');for(let i=0;i<a.length;i++)assert(a[i]===b[i],'byte mismatch at '+i)}
 function throws(fn,re){let ok=false;try{fn()}catch(e){ok=re.test(e.message)}assert(ok,'expected error matching '+re)}
