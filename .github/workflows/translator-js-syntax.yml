@@ -39,6 +39,8 @@ jobs:
         run: node tests/dbpf_core.js
       - name: Run DBPF internal compression regression tests
         run: node tests/dbpf_compression.js
+      - name: Run DBPF to STBL integration regression tests
+        run: node tests/package_stbl_integration.js
       - name: Run STBL core regression tests
         run: node tests/stbl_core.js
       - name: Run package rebuild regression tests
