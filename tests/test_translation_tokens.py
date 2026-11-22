@@ -9,7 +9,7 @@ NS = {'re': re}
 exec(compile(ast.Module(body=NODES, type_ignores=[]), 'server.py', 'exec'), NS)
 
 class TokenTests(unittest.TestCase):
-    safe = NS['_safe_translation']
+    safe = staticmethod(NS['_safe_translation'])
 
     def test_placeholders_markup_preserved(self):
         src = '<b>Hi</b> {0} %s [NAME] §'
