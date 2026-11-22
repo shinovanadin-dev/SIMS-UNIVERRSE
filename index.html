@@ -1194,21 +1194,23 @@ async function translatorAITranslateUntranslated(){
  const pending=translatorRows.map((r,i)=>({r,i})).filter(x=>!x.r.trans.trim()&&x.r.source.trim());
  if(!pending.length){alert("Нет непереведённых строк с оригиналом");return translatorRows.some(r=>r.source.trim()&&r.trans.trim())}
  const language=document.getElementById("translatorLanguage")?.value||"Russian (Русский)",meta=document.getElementById("translatorMeta");
- let done=0,rejected=0;
- try{
-  for(let start=0;start<pending.length;start+=25){
-   let batchNo=Math.floor(start/25)+1,batch=pending.slice(start,start+25);
-   if(meta)meta.textContent="AI перевод · пакет "+batchNo+" · "+Math.min(start+1,pending.length)+"–"+Math.min(start+batch.length,pending.length)+" / "+pending.length+" · принято "+done+" · отклонено "+rejected;
+ let done=0,rejected=0,failed=[];
+ for(let start=0;start<pending.length;start+=25){
+  let batchNo=Math.floor(start/25)+1,batch=pending.slice(start,start+25);
+  if(meta)meta.textContent="AI перевод · пакет "+batchNo+" · строки "+(start+1)+"–"+(start+batch.length)+" / "+pending.length+" · принято "+done+" · отклонено "+rejected+" · сбои "+failed.length;
+  try{
    let res=await fetch("/api/translate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({target_language:language,texts:batch.map(x=>x.r.source)})});
-   let data;try{data=await res.json()}catch(e){throw Error("Пакет "+batchNo+": сервер вернул не JSON (HTTP "+res.status+")")}
-   if(!res.ok)throw Error("Пакет "+batchNo+" / HTTP "+res.status+": "+(data.error||"ошибка сервера"));
-   if(!Array.isArray(data.translations)||data.translations.length!==batch.length)throw Error("Пакет "+batchNo+": ответ содержит "+(data.translations?.length??"неизвестное число")+" строк вместо "+batch.length);
-   batch.forEach((x,j)=>{let translated=String(data.translations[j]??"");if(translated.trim()){let candidate={source:x.r.source,trans:translated},check=translatorTokenCheck(candidate);if(!check.ok){translatorRows[x.i].status="review";rejected++;return}translatorRows[x.i].trans=translated;translatorRows[x.i].status="translated";done++}});
-   translatorAutoSave();
-  }
-  translatorDraw();translatorUpdateMeta();alert("AI перевёл "+done+" строк. Отклонено из-за несовпадения токенов: "+rejected+". Такие строки помечены «Проверить» и не записаны в перевод. Проверьте результат перед сборкой package.");return true;
- }catch(e){translatorDraw();translatorUpdateMeta();alert("AI-перевод прерван. Уже сохранено: "+done+" строк; отклонено по токенам: "+rejected+". "+e.message+"\nПакеты по 25 строк; предыдущие успешные переводы сохранены автоматически. Проверьте GROQ_API_KEY в Railway Variables.");return false;
+   let data;try{data=await res.json()}catch(e){throw Error("сервер вернул не JSON (HTTP "+res.status+")")}
+   if(!res.ok)throw Error("HTTP "+res.status+": "+(data.error||"ошибка сервера"));
+   if(!Array.isArray(data.translations)||data.translations.length!==batch.length)throw Error("ответ содержит "+(data.translations?.length??"неизвестное число")+" строк вместо "+batch.length);
+   batch.forEach((x,j)=>{let translated=String(data.translations[j]??"");if(!translated.trim())return;let check=translatorTokenCheck({source:x.r.source,trans:translated});if(!check.ok){translatorRows[x.i].status="review";rejected++;return}translatorRows[x.i].trans=translated;translatorRows[x.i].status="translated";done++});
+  }catch(e){failed.push("пакет "+batchNo+" (строки "+(start+1)+"–"+(start+batch.length)+"): "+e.message)}
+  translatorAutoSave();translatorDraw();translatorUpdateMeta();
  }
+ let message="AI перевод завершён. Успешно переведено: "+done+"; отклонено по токенам: "+rejected+"; неудачных пакетов: "+failed.length+" из "+Math.ceil(pending.length/25)+".";
+ if(failed.length)message+="\n\nСбои:\n"+failed.join("\n")+"\n\nПовторите перевод: уже переведённые строки пропускаются, поэтому обработаются только оставшиеся.";
+ message+="\nПакеты по 25; все промежуточные результаты сохранены автоматически.";
+ alert(message);return failed.length===0;
 }
 function translatorSet(i,k,v){if(translatorRows[i]){translatorRows[i][k]=v;if(k==="trans"&&v.trim()&&translatorRows[i].status==="draft")translatorRows[i].status="translated";translatorAutoSave()}translatorDraw()}
 function translatorAddRow(){translatorRows.push({key:"",source:"",trans:"",status:"draft"});translatorAutoSave();translatorDraw()}
