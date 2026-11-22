@@ -1,6 +1,6 @@
 const fs=require("fs"),vm=require("vm"),assert=require("assert");
 const html=fs.readFileSync("index.html","utf8");
-function extract(name){let start=html.indexOf("async function "+name+"(");if(start<0)throw Error("Function missing: "+name);let brace=html.indexOf("{",start),depth=0,quote=null,escape=false;for(let i=brace;i<html.length;i++){let ch=html[i];if(quote){if(escape)escape=false;else if(ch==="\\\\")escape=true;else if(ch===quote)quote=null;continue}if(ch==="'"||ch==="\\"")quote=ch;else if(ch==="{")depth++;else if(ch==="}"){depth--;if(depth===0)return html.slice(start,i+1)}}throw Error("Function end missing")}
+function extract(name){let start=html.indexOf("async function "+name+"(");if(start<0)throw Error("Function missing: "+name);let end=html.indexOf("\nfunction translatorSet",start);if(end<0)throw Error("Function terminator missing");return html.slice(start,end)}
 const fn=extract("translatorAITranslateUntranslated");
 function setup(rows,fetch){let saves=0,draws=0,updates=0,alerts=[],ctx={translatorRows:rows,translatorTokenCheck:()=>({ok:true}),translatorAutoSave:()=>saves++,translatorDraw:()=>draws++,translatorUpdateMeta:()=>updates++,document:{getElementById:id=>id==="translatorLanguage"?{value:"Russian"}:id==="translatorMeta"?{textContent:""}:null},alert:m=>alerts.push(m),fetch};return{ctx,get saves(){return saves},get draws(){return draws},get updates(){return updates},alerts}}
 (async()=>{
