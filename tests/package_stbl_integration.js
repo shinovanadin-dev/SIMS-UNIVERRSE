@@ -1,7 +1,7 @@
 // End-to-end synthetic DBPF -> resource extraction -> STBL parse regression.
 const fs=require('fs'),vm=require('vm');
 const src=fs.readFileSync('index.html','utf8');
-function get(name,next){let a=src.indexOf('function '+name+'(');if(a<0)a=src.indexOf('async function '+name+'(');let b=src.indexOf('function '+next+'(',a);if(b<0)b=src.indexOf('async function '+next+'(',a);if(a<0||b<0)throw Error('Missing function boundary '+name+' -> '+next);return src.slice(a,b).trim()}
+function get(name,next){let a1=src.indexOf('function '+name+'('),a2=src.indexOf('async function '+name+'('),a=a1<0?a2:a2<0?a1:Math.min(a1,a2);let b1=src.indexOf('function '+next+'(',a),b2=src.indexOf('async function '+next+'(',a),b=b1<0?b2:b2<0?b1:Math.min(b1,b2);if(a<0||b<0)throw Error('Missing function boundary '+name+' -> '+next);return src.slice(a,b).trim()}
 function getAsync(name,next){return get(name,next)}
 const script=[get('dbpfU32','dbpfU16'),get('dbpfU16','dbpfParse'),get('dbpfParse','dbpfTypeName'),get('stblU16','stblU32'),get('stblU32','stblU64'),get('stblU64','stblParse'),get('stblParse','stblEncode'),get('dbpfInternalDecode','dbpfExtract'),getAsync('dbpfExtract','dbpfDownload')].join('\n');
 const ctx={Uint8Array,BigInt,TextDecoder,TextEncoder,Map,Set,Error,Number,Response,Blob,window:{},console};vm.runInNewContext(script,ctx);
