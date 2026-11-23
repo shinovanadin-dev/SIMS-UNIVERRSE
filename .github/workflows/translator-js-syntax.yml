@@ -35,6 +35,8 @@ jobs:
             node --check "$file"
           done
 
+      - name: Run translation memory regressions
+        run: node tests/translator_memory.js
       - name: Run bulk STBL JSON export tests
         run: node tests/dbpf_bulk_stbl_export.js
       - name: Run translator batch recovery tests
