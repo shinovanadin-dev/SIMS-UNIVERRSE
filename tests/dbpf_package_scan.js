@@ -12,7 +12,7 @@ const resources=[
 const sandbox={DBPF_STBL_TYPE:0x220557DA,dbpfCurrent:{name:'Fixture.package',bytes:new Uint8Array(100)},dbpfEntries:resources,
  dbpfExtract:async e=>new Uint8Array([e.index]),
  stblParse:b=>{let id=b[0];if(id===3)throw Error('fixture parse failure');return {entries:id===0?[{text:'Hello'},{text:'Hello'},{text:''}]:[{text:'Welcome'}]}},
- dbpfDownload:(bytes,name,ext)=>captured={json:new TextDecoder().decode(bytes),name,ext},
+ dbpfDownload:(bytes,name,ext)=>{captured={json:new TextDecoder().decode(bytes),name,ext}},
  translatorMemoryGet:(lang,src)=>src==='Hello'?'Привет':src==='Welcome'?'ошибка токена':null,
  translatorTokenCheck:({source,trans})=>({ok:source==='Hello'&&trans==='Привет'}),
  document:{getElementById:id=>meta},alert:m=>alerts.push(m),TextEncoder,console};
