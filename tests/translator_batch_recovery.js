@@ -1,8 +1,8 @@
 const fs=require("fs"),vm=require("vm"),assert=require("assert");
 const html=fs.readFileSync("index.html","utf8");
 function extract(name){let start=html.indexOf("async function "+name+"(");if(start<0)throw Error("Function missing: "+name);let end=html.indexOf("\nfunction translatorSet",start);if(end<0)throw Error("Function terminator missing");return html.slice(start,end)}
-const fn=extract("translatorAITranslateUntranslated");
-function setup(rows,fetch){let saves=0,draws=0,updates=0,alerts=[],ctx={translatorRows:rows,translatorTokenCheck:()=>({ok:true}),translatorAutoSave:()=>saves++,translatorDraw:()=>draws++,translatorUpdateMeta:()=>updates++,document:{getElementById:id=>id==="translatorLanguage"?{value:"Russian"}:id==="translatorMeta"?{textContent:""}:null},alert:m=>alerts.push(m),fetch};return{ctx,get saves(){return saves},get draws(){return draws},get updates(){return updates},alerts}}
+const memory=html.slice(html.indexOf('const TRANSLATOR_MEMORY_KEY="simsUniverseTranslationMemoryV1";'),html.indexOf("async function translatorAITranslateUntranslated(){"));\nconst fn=memory+extract("translatorAITranslateUntranslated");
+function setup(rows,fetch){let saves=0,draws=0,updates=0,alerts=[],storage=new Map(),ctx={localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v)},translatorRows:rows,translatorTokenCheck:()=>({ok:true}),translatorAutoSave:()=>saves++,translatorDraw:()=>draws++,translatorUpdateMeta:()=>updates++,document:{getElementById:id=>id==="translatorLanguage"?{value:"Russian"}:id==="translatorMeta"?{textContent:""}:null},alert:m=>alerts.push(m),fetch};return{ctx,get saves(){return saves},get draws(){return draws},get updates(){return updates},alerts}}
 (async()=>{
  let rows=Array.from({length:60},(_,i)=>({source:"Source "+i,trans:"",status:"draft"})),calls=0;
  let h=setup(rows,async(url,opt)=>{calls++;if(calls===1)throw Error("network offline");let b=JSON.parse(opt.body);return{ok:true,status:200,json:async()=>({translations:b.texts.map(t=>"RU "+t)})}});
