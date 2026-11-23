@@ -9,8 +9,8 @@ assert.ok(productionPipeline.includes('Matching Russian STBL target resource is 
 const missingTargetBlock=productionPipeline.slice(productionPipeline.indexOf('  if(!target){'),productionPipeline.indexOf(' report.targetTables++;'));
 assert.ok(missingTargetBlock.includes('report.missingTargetTables++'),'missing target block increments counter');
 let missingTargetReport={missingTargetTables:0,targetTables:0,errors:[]};
-const missingTargetExec=new Function('report','src','missingTargetBlock','for(let fixtureLoop=0;fixtureLoop<1;fixtureLoop++){'+missingTargetBlock+'}');
-missingTargetExec(missingTargetReport,{index:7},{});
+const missingTargetExec=new Function('report','src','target',missingTargetBlock.replace('continue','return'));
+missingTargetExec(missingTargetReport,{index:7},null);
 assert.strictEqual(missingTargetReport.missingTargetTables,1,'missing RU target counted');
 assert.strictEqual(missingTargetReport.errors[0].phase,'scan','missing RU target is a scan failure');
 assert.ok(productionPipeline.includes('blocked_scan_errors'),'production scan guard marks failure status');
