@@ -37,6 +37,8 @@ jobs:
 
       - name: Run translation memory regressions
         run: node tests/translator_memory.js
+      - name: Run translation memory import/export/clear tests
+        run: node tests/translator_memory_io.js
       - name: Run bulk STBL JSON export tests
         run: node tests/dbpf_bulk_stbl_export.js
       - name: Run translator batch recovery tests
