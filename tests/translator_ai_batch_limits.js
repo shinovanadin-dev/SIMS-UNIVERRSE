@@ -5,7 +5,7 @@ assert.ok(start>=0&&end>start,'safe batch helper exists');
 const fn=html.slice(start,end).trim();
 const build=new Function(fn+';return translatorBuildSafeBatches;')();
 const q=(id,source)=>({id,source});
-const input=[q(0,'a'.repeat(8000)),q(1,'b'.repeat(8001)),q(2,'c'.repeat(30000)),q(3,'d'.repeat(10000)),q(4,'e'.repeat(10000)),q(5,'f'.repeat(10000)),q(6,'g'.repeat(10000)),q(7,'h'.repeat(10000))];
+const input=[q(0,'a'.repeat(8000)),q(1,'b'.repeat(8001)),q(2,'c'.repeat(8000)),q(3,'d'.repeat(8000)),q(4,'e'.repeat(8000)),q(5,'f'.repeat(8000)),q(6,'g'.repeat(8000)),q(7,'h'.repeat(8000))];
 const result=build(input,25,40000,8000);
 assert.strictEqual(result.oversize.length,1,'reject only one oversize item');
 assert.strictEqual(result.oversize[0].id,1,'oversize row is reported');
@@ -15,6 +15,6 @@ assert.ok(result.batches.every(b=>b.reduce((n,x)=>n+x.source.length,0)<=40000),'
 assert.ok(result.batches.every(b=>b.every(x=>x.source.length<=8000)),'individual text limit honored');
 const limitCount=build(Array.from({length:26},(_,i)=>q(i,'x')),25,40000,8000);
 assert.strictEqual(limitCount.batches.length,2,'25-item limit splits correctly');
-const charLimit=build([q(0,'a'.repeat(25000)),q(1,'b'.repeat(20000)),q(2,'c'.repeat(5000))],25,40000,8000);
+const charLimit=build([q(0,'a'.repeat(8000)),q(1,'b'.repeat(8000)),q(2,'c'.repeat(8000)),q(3,'d'.repeat(8000)),q(4,'e'.repeat(8000)),q(5,'f'.repeat(8000))],25,40000,8000);
 assert.strictEqual(charLimit.batches.length,2,'aggregate char limit splits correctly');
 console.log('PASS safe adaptive AI batches: count, payload, individual limit, oversize, order');
