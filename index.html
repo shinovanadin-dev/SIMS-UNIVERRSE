@@ -1190,7 +1190,7 @@ async function dbpfBuildSmartTranslationQueue(){
 }
 async function dbpfRunUnifiedTranslationPipeline(){
  if(!dbpfCurrent){alert("Load a .package first");return}
- const originalName=dbpfCurrent.name,originalBytes=new Uint8Array(dbpfCurrent.bytes),originalEntries=dbpfEntries.slice(),language=document.getElementById("translatorLanguage")?.value||"Russian (Русский)",report={tool:"Sims Universe Unified Package Translation",version:1,packageName:originalName,language,startedAt:new Date().toISOString(),sourceTables:0,targetTables:0,uniqueSourceStrings:0,existingTranslationsPreserved:0,tmApplied:0,aiTranslated:0,aiRetries:0,tokenRejected:0,aiFailed:0,mergeErrors:[],rebuildStatus:"not_started",verificationStatus:"not_started",resourceCountBefore:originalEntries.length,resourceCountAfter:null,errors:[]};
+ const originalName=dbpfCurrent.name,originalBytes=new Uint8Array(dbpfCurrent.bytes),originalEntries=dbpfEntries.slice(),language=document.getElementById("translatorLanguage")?.value||"Russian (Русский)",report={tool:"Sims Universe Unified Package Translation",version:1,packageName:originalName,language,startedAt:new Date().toISOString(),sourceTables:0,targetTables:0,missingTargetTables:0,uniqueSourceStrings:0,existingTranslationsPreserved:0,tmApplied:0,aiTranslated:0,aiRetries:0,tokenRejected:0,aiFailed:0,mergeErrors:[],rebuildStatus:"not_started",verificationStatus:"not_started",resourceCountBefore:originalEntries.length,resourceCountAfter:null,errors:[]};
  const engLocale=0,ruLocale=18,suffixMask=0x00FFFFFFFFFFFFFFn,normalizedMap=new Map(),targets=new Map(),sourceToTarget=new Map();
  const originals=new Map(),sourceTextByOccurrence=new Map(),occurrences=new Map();
  const statusEl=document.getElementById("dbpfMeta");
@@ -1200,7 +1200,7 @@ async function dbpfRunUnifiedTranslationPipeline(){
  report.sourceTables=eng.length;
  for(let si=0;si<eng.length;si++){
   const src=eng[si],target=originalEntries.find(candidate=>candidate.type===DBPF_STBL_TYPE&&candidate.group===src.group&&Number(BigInt("0x"+candidate.instance)>>56n)===ruLocale&&sameSuffix(candidate,src));
-  if(!target)continue; report.targetTables++;
+  if(!target){report.missingTargetTables++;report.errors.push({phase:"scan",sourceIndex:src.index,error:"Matching Russian STBL target resource is missing; package translation scope is incomplete"});continue} report.targetTables++;
   try{
    const sParsed=stblParse(await dbpfExtractFromBytes(originalBytes,src)),tParsed=stblParse(await dbpfExtractFromBytes(originalBytes,target));
    originals.set(target.index,tParsed.entries.slice());targets.set(target.index,{entry:target,parsed:tParsed});
