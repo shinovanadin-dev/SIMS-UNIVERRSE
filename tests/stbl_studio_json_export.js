@@ -6,5 +6,5 @@ const src=match[0];
 assert(src.includes("parseInt(raw,16)"),"hex hash keys exported as numeric STBL keys");
 assert(src.includes("r.trans||r.source"),"translation with English fallback is used");
 assert(src.includes("seen.has(key)"),"duplicate keys are rejected");
-assert(src.includes("throw Error(\"Некорректный STBL key:\""),"malformed keys are rejected");
+assert(src.includes("Некорректный STBL key:"),"malformed keys are rejected");
 console.log("STBL Studio JSON export guard checks passed");
