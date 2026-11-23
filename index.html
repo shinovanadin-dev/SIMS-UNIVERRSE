@@ -1199,7 +1199,7 @@ async function dbpfRunUnifiedTranslationPipeline(){
  const eng=originalEntries.filter(e=>e.type===DBPF_STBL_TYPE&&Number(BigInt("0x"+e.instance)>>56n)===engLocale);
  report.sourceTables=eng.length;
  for(let si=0;si<eng.length;si++){
-  const src=eng[si],target=originalEntries.find(e=>e.type===DBPF_STBL_TYPE&&e.group===src.group&&Number(BigInt("0x"+e.instance)>>56n)===ruLocale&&sameSuffix(e,src));
+  const src=eng[si],target=originalEntries.find(e=>e.type===DBPF_STBL_TYPE&&e.group===src.group&&Number(BigInt("0x"+e.instance)>>56n)===ruLocale&&sameSuffix(t,src));
   if(!target)continue; report.targetTables++;
   try{
    const sParsed=stblParse(await dbpfExtractFromBytes(originalBytes,src)),tParsed=stblParse(await dbpfExtractFromBytes(originalBytes,target));
