@@ -12,5 +12,5 @@ function setup(rows,fetch){let saves=0,draws=0,updates=0,alerts=[],storage=new M
  rows=Array.from({length:26},(_,i)=>({source:"Source "+i,trans:"",status:"draft"}));calls=0;
  h=setup(rows,async(url,opt)=>{calls++;return calls===1?{ok:false,status:503,json:async()=>({error:"busy"})}:{ok:true,status:200,json:async()=>({translations:JSON.parse(opt.body).texts.map(t=>"RU "+t)})}});
  await vm.runInNewContext(fn+";translatorAITranslateUntranslated()",h.ctx);
- assert.equal(calls,2);assert(h.alerts[0].includes("пакет 1 (строки 1–25)"));assert.equal(rows.filter(r=>r.trans).length,1);console.log("PASS error report names failed batch and exact row range");
+ assert.equal(calls,2);assert(h.alerts[0].includes("пакет 1 (уникальные строки 1–25)"));assert.equal(rows.filter(r=>r.trans).length,1);console.log("PASS error report names failed batch and exact row range");
 })().catch(e=>{console.error(e);process.exit(1)});
