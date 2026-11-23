@@ -16,7 +16,7 @@ ctx.dbpfCurrent={bytes:new Uint8Array(packageBuffer),name:'synthetic-e2e.package
 let rebuildCalls=0;const realRebuild=ctx.dbpfRebuildPackage;ctx.dbpfRebuildPackage=(m)=>{rebuildCalls++;return realRebuild(m)};
 let apiCalls=0;async function mockAI(texts){apiCalls++;return {ok:true,status:200,json:async()=>({translations:texts.map(t=>t==='Hello {0}'?'Здравствуйте {0}':t==='Bad [PLAYER]'?'Bad PLAYER':'')})}}
 const work=[],existingRU={Open:'Открыть'},tableData=[];
-for(const e of ctx.dbpfEntries.slice(0,2)){let table=ctx.stblParse(ctx.dbpfCurrent.bytes.slice(e.offset,e.offset+e.size));tableData.push({index:e.index,entries:table.entries});for(const row of table.entries)if(!existingRU[row.text]&&!row.text.startsWith('Bad'))work.push(row.text)}
+for(const e of ctx.dbpfEntries.slice(0,2)){let table=ctx.stblParse(ctx.dbpfCurrent.bytes.slice(e.offset,e.offset+e.size));tableData.push({index:e.index,entries:table.entries});for(const row of table.entries)if(!existingRU[row.text])work.push(row.text)}
 const response=await (await mockAI(work)).json();must(apiCalls===1&&response.translations.length===work.length,'single mock AI response contract');
 const replacements=new Map();let rejected=0,translated=0,preserved=0;
 for(const t of tableData){let changed=false;for(const row of t.entries){if(existingRU[row.text]){row.text=existingRU[row.text];preserved++;continue}let ix=work.indexOf(row.text);if(ix<0)continue;let candidate=response.translations[ix];if(!ctx.translatorTokenCheck({source:row.text,trans:candidate}).ok){rejected++;continue}row.text=candidate;translated++;changed=true}if(changed)replacements.set(t.index,ctx.stblEncode(t.entries))}
