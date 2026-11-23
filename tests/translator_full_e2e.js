@@ -6,6 +6,13 @@ const productionPipeline=html.slice(html.indexOf('async function dbpfRunUnifiedT
 assert.ok(productionPipeline.includes('report.errors.some(e=>e.phase==="scan")'),'production pipeline blocks rebuild after STBL scan failures');
 assert.ok(productionPipeline.includes('report.missingTargetTables++'),'missing RU STBL target is counted and treated as a scan failure');
 assert.ok(productionPipeline.includes('Matching Russian STBL target resource is missing'),'missing RU target cannot silently skip translation scope');
+const missingTargetBlock=productionPipeline.slice(productionPipeline.indexOf('  if(!target){'),productionPipeline.indexOf(' report.targetTables++;'));
+assert.ok(missingTargetBlock.includes('report.missingTargetTables++'),'missing target block increments counter');
+let missingTargetReport={missingTargetTables:0,targetTables:0,errors:[]};
+const missingTargetExec=new Function('report','src','missingTargetBlock',missingTargetBlock);
+missingTargetExec(missingTargetReport,{index:7},{});
+assert.strictEqual(missingTargetReport.missingTargetTables,1,'missing RU target counted');
+assert.strictEqual(missingTargetReport.errors[0].phase,'scan','missing RU target is a scan failure');
 assert.ok(productionPipeline.includes('blocked_scan_errors'),'production scan guard marks failure status');
 assert.ok(productionPipeline.indexOf('blocked_scan_errors')<productionPipeline.indexOf('const queue=Array.from(normalizedMap.values())'),'scan guard runs before AI queue execution');
 const src=[extract('dbpfU32','dbpfU16'),extract('dbpfU16','dbpfParse'),extract('dbpfParse','dbpfTypeName'),extract('stblU16','stblU32'),extract('stblU32','stblU64'),extract('stblU64','stblParse'),extract('stblParse','stblEncode'),extract('stblEncode','stblKeyNumber'),extract('stblKeyNumber','stblLoadFile'),extract('translatorTokens','translatorTokenCheck'),extract('translatorTokenCheck','translatorNormalizeKey')].join('\n')+'\n'+extract('dbpfWrite32','dbpfWrite16')+'\n'+extract('dbpfWrite16','dbpfRebuildPackage')+'\n'+extract('dbpfRebuildPackage','dbpfReplaceSTBL');
