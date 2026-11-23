@@ -1238,13 +1238,14 @@ async function dbpfRunUnifiedTranslationPipeline(){
   try{const merged=meta.parsed.entries.slice(),keyMap=new Map(merged.map((e,i)=>[String(e.key).toUpperCase(),i]));
    for(const q of queue){if(!q.translation)continue;for(const occ of q.occurrences.filter(o=>o.targetIndex===targetIndex)){const k=String(occ.key).toUpperCase(),ix=keyMap.get(k),original=sourceTextByOccurrence.get(targetIndex+"\u0000"+k);if(original==null)continue;
     if(ix!==undefined){const old=String(merged[ix].text||"").trim();if(old&&old!==original){report.existingTranslationsPreserved++;continue}merged[ix]={...merged[ix],text:q.translation}}
-    else merged.push({key:occ.sourceKey,flags:occ.flags,text:q.translation});;
+    else{const added={key:occ.sourceKey,flags:occ.flags,text:q.translation};keyMap.set(k,merged.length);merged.push(added)};
    }}
    const encoded=stblEncode(merged),round=stblParse(encoded.buffer);if(round.entries.length!==merged.length)throw Error("STBL roundtrip count mismatch");
    for(let i=0;i<merged.length;i++)if(round.entries[i].key!==merged[i].key||round.entries[i].flags!==merged[i].flags||round.entries[i].text!==merged[i].text)throw Error("STBL roundtrip content mismatch at "+i);
    if(merged.some((e,i)=>e.text!==meta.parsed.entries[i]?.text)||merged.length!==meta.parsed.entries.length)replacements.set(targetIndex,encoded);
   }catch(err){report.mergeErrors.push({targetIndex,error:String(err.message||err)})}
  }
+ if(report.mergeErrors.length){report.rebuildStatus="blocked_merge_errors";report.verificationStatus="failed";report.errors.push({phase:"merge_guard",error:"Package rebuild blocked because one or more STBL merges failed; no partial translation package will be written."});report.finishedAt=new Date().toISOString();dbpfDownload(new TextEncoder().encode(JSON.stringify(report,null,2)),originalName.replace(/\.[^.]+$/ ,"")+"_unified_translation_report","json");setStatus("Unified translation aborted: STBL merge errors · source package unchanged");alert("Translation aborted safely: STBL merge errors detected. Original package remains unchanged.");return report}
  report.translationsAccepted=queue.filter(q=>q.translation).length;report.translationQueue=queue.map(q=>({id:q.id,source:q.source,action:q.action,translated:!!q.translation,occurrences:q.occurrences.length}));
  if(!replacements.size){report.rebuildStatus="no_changes";report.verificationStatus="not_applicable";report.finishedAt=new Date().toISOString();dbpfDownload(new TextEncoder().encode(JSON.stringify(report,null,2)),originalName.replace(/\.[^.]+$/,"")+"_unified_translation_report","json");setStatus("Unified translator: no safe STBL changes · AI failed/rejected "+(report.aiFailed+report.tokenRejected));alert("Pipeline finished without package changes: no safe translations to merge. Report downloaded.");return report}
  // Single package rebuild from the original package state.
