@@ -50,6 +50,7 @@ function harness(initial={},file=null,confirmResult=true){
  h.ctx.translatorMemoryImport();await new Promise(r=>setTimeout(r,0));
  d=h.read();assert.equal(Object.keys(d).length,3000,"import merge respects 3000-entry cap");
  assert.equal(d["russian|0"],undefined,"oldest existing record evicted when cap exceeded");
- assert.equal(d["russian|extra"],"Extra","first imported record retained at cap boundary");\n assert.equal(d["russian|last"],"Last","new records retained after cap");
+ assert.equal(d["russian|extra"],"Extra","first imported record retained at cap boundary");
+ assert.equal(d["russian|last"],"Last","new records retained after cap");
  console.log("Translation memory import/export/clear regression: 17 checks passed");
 })().catch(e=>{console.error(e);process.exit(1)});
