@@ -1149,7 +1149,7 @@ async function dbpfTranslateAndRebuildSTBL(index){
 async function dbpfLoadPackage(file){if(!file)return;packageSTBLTarget=null;packageSTBLOriginal=null;try{let bytes=new Uint8Array(await file.arrayBuffer()),info=dbpfParse(bytes.buffer);dbpfCurrent={name:file.name,bytes,info};dbpfEntries=info.entries;dbpfRender();alert("Package parsed: "+info.count+" resources. STBL: "+dbpfEntries.filter(e=>e.type===DBPF_STBL_TYPE).length)}catch(e){dbpfCurrent=null;dbpfEntries=[];packageSTBLTarget=null;packageSTBLOriginal=null;dbpfRender();alert("DBPF error: "+e.message)}}
 
 function dbpfExtractGeneric(entry){dbpfExtract(entry).then(bytes=>{dbpfDownloadBytes(bytes,"RESOURCE_"+entry.type.toString(16).toUpperCase()+"_"+entry.instance+"_"+entry.index,"bin");alert("Resource extracted ("+bytes.byteLength+" bytes)")}).catch(e=>alert("Extract error: "+e.message))}
-async async function dbpfScanPackageTranslationCoverage(){
+async function dbpfScanPackageTranslationCoverage(){
  if(!dbpfCurrent){alert("Load a .package first");return}
  const language=document.getElementById("translatorLanguage")?.value||"Russian (Русский)";
  const report={tool:"Sims Universe Translator Package Scan",generatedAt:new Date().toISOString(),packageName:dbpfCurrent.name||"package",packageBytes:dbpfCurrent.bytes.length,translationLanguage:language,resourcesTotal:dbpfEntries.length,stblResources:0,stblStrings:0,emptyStrings:0,duplicateTexts:0,compressedSTBL:0,translationMemoryHits:0,translationMemoryTokenRejected:0,translationMemoryMisses:0,errors:[],resources:[]};
