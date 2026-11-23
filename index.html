@@ -1159,7 +1159,6 @@ async function dbpfBuildSmartTranslationQueue(){
   const item={sourceIndex:src.index,targetIndex:target?.index??null,instance:src.instance,strings:0,alreadyTranslated:0,tmReady:0,tokenRejected:0,needsAI:0,status:"pending",queue:[]};
   try{const parsed=stblParse(await dbpfExtract(src)),targetParsed=target?stblParse(await dbpfExtract(target)):null,targetMap=new Map((targetParsed?.entries||[]).map(x=>[String(x.key).toUpperCase(),x]));
    for(const row of parsed.entries){const source=String(row.text||"").trim();if(!source)continue;item.strings++;const key=String(row.key).toUpperCase(),t=targetMap.get(key),existing=t&&String(t.text||"").trim()&&String(t.text).trim()!==source;if(existing){item.alreadyTranslated++;report.alreadyTranslated++;continue}if(!seen.has(source.toLowerCase()))report.uniqueTexts++;seen.add(source.toLowerCase());const hit=translatorMemoryGet(language,source);if(hit){const check=translatorTokenCheck({source,trans:hit});if(check.ok){item.tmReady++;report.tmReady++;item.queue.push({key:"0x"+key,source,translation:hit,action:"TM_APPLY"})}else{item.tokenRejected++;report.tokenRejected++;item.queue.push({key:"0x"+key,source,action:"AI_RETRANSLATE_TOKEN_REJECT"})}}else{item.needsAI++;report.needsAI++;item.queue.push({key:"0x"+key,source,action:"AI_TRANSLATE"})}}
-   }
    item.status=target?"ready":"no_RUS_target";
   }catch(err){item.status="error";item.error=String(err.message||err);report.errors.push({sourceIndex:src.index,error:item.error})}
   report.resources.push(item);
