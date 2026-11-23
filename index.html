@@ -1199,7 +1199,7 @@ async function dbpfRunUnifiedTranslationPipeline(){
  const eng=originalEntries.filter(e=>e.type===DBPF_STBL_TYPE&&Number(BigInt("0x"+e.instance)>>56n)===engLocale);
  report.sourceTables=eng.length;
  for(let si=0;si<eng.length;si++){
-  const src=eng[si],target=originalEntries.find(e=>e.type===DBPF_STBL_TYPE&&e.group===src.group&&Number(BigInt("0x"+e.instance)>>56n)===ruLocale&&sameSuffix(e,src));
+  const src=eng[si],target=originalEntries.find(candidate=>candidate.type===DBPF_STBL_TYPE&&candidate.group===src.group&&Number(BigInt("0x"+candidate.instance)>>56n)===ruLocale&&sameSuffix(candidate,src));
   if(!target)continue; report.targetTables++;
   try{
    const sParsed=stblParse(await dbpfExtractFromBytes(originalBytes,src)),tParsed=stblParse(await dbpfExtractFromBytes(originalBytes,target));
@@ -1238,7 +1238,7 @@ async function dbpfRunUnifiedTranslationPipeline(){
   try{const merged=meta.parsed.entries.slice(),keyMap=new Map(merged.map((e,i)=>[String(e.key).toUpperCase(),i]));
    for(const q of queue){if(!q.translation)continue;for(const occ of q.occurrences.filter(o=>o.targetIndex===targetIndex)){const k=String(occ.key).toUpperCase(),ix=keyMap.get(k),original=sourceTextByOccurrence.get(targetIndex+"\u0000"+k);if(original==null)continue;
     if(ix!==undefined){const old=String(merged[ix].text||"").trim();if(old&&old!==original){report.existingTranslationsPreserved++;continue}merged[ix]={...merged[ix],text:q.translation}}
-    else merged.push({key:occ.sourceKey,flags:occ.flags,text:q.translation});
+    else merged.push({key:occ.sourceKey,flags:occ.flags,text:q.translation});;
    }}
    const encoded=stblEncode(merged),round=stblParse(encoded.buffer);if(round.entries.length!==merged.length)throw Error("STBL roundtrip count mismatch");
    for(let i=0;i<merged.length;i++)if(round.entries[i].key!==merged[i].key||round.entries[i].flags!==merged[i].flags||round.entries[i].text!==merged[i].text)throw Error("STBL roundtrip content mismatch at "+i);
