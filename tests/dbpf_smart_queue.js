@@ -5,9 +5,9 @@ const fn=html.slice(start,end);
 let downloaded=null,alerts=[],meta={textContent:''};
 const resources=[
  {index:0,type:0x220557DA,group:10,instance:'0000000000000000'},
- {index:1,type:0x220557DA,group:10,instance:'1800000000000000'},
+ {index:1,type:0x220557DA,group:10,instance:'1200000000000000'},
  {index:2,type:0x220557DA,group:11,instance:'0000000000000001'},
- {index:3,type:0x220557DA,group:11,instance:'1800000000000001'},
+ {index:3,type:0x220557DA,group:11,instance:'1200000000000001'},
  {index:4,type:0x220557DA,group:12,instance:'0000000000000002'}
 ];
 const fakeSTBL={
