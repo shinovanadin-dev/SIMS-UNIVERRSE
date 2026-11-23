@@ -1,0 +1,10 @@
+const fs=require("fs"),vm=require("vm"),assert=require("assert");
+const html=fs.readFileSync("index.html","utf8");
+const match=html.match(/function translatorExportSTBLStudioJSON\(\)\{[\s\S]*?\n\}/);
+assert(match,"STBL Studio JSON export function exists");
+const src=match[0];
+assert(src.includes("parseInt(raw,16)"),"hex hash keys exported as numeric STBL keys");
+assert(src.includes("r.trans||r.source"),"translation with English fallback is used");
+assert(src.includes("seen.has(key)"),"duplicate keys are rejected");
+assert(src.includes("throw Error(\"Некорректный STBL key:\""),"malformed keys are rejected");
+console.log("STBL Studio JSON export guard checks passed");
