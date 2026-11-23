@@ -1,7 +1,7 @@
 // Full mocked AI -> token validation -> existing-RU preservation -> one DBPF rebuild -> reopen verification.
 const fs=require('fs'),vm=require('vm'),assert=require('assert');
 const html=fs.readFileSync('index.html','utf8');
-function extract(name,next){let a=html.indexOf('function '+name+'('),b=html.indexOf('function '+next+'(',a);if(a<0||b<0)throw Error('Missing production function '+name);return html.slice(a,b)}
+function extract(name,next){let a1=html.indexOf('function '+name+'('),a2=html.indexOf('async function '+name+'('),a=a1<0?a2:a2<0?a1:Math.min(a1,a2);let b1=html.indexOf('function '+next+'(',a),b2=html.indexOf('async function '+next+'(',a),b=b1<0?b2:b2<0?b1:Math.min(b1,b2);if(a<0||b<0)throw Error('Missing production function '+name);return html.slice(a,b)}
 const src=[extract('dbpfU32','dbpfU16'),extract('dbpfU16','dbpfParse'),extract('dbpfParse','dbpfTypeName'),extract('stblU16','stblU32'),extract('stblU32','stblU64'),extract('stblU64','stblParse'),extract('stblParse','stblEncode'),extract('stblEncode','stblKeyNumber'),extract('stblKeyNumber','stblLoadFile'),extract('translatorTokens','translatorTokenCheck'),extract('translatorTokenCheck','translatorNormalizeKey')].join('\n')+'\n'+extract('dbpfWrite32','dbpfWrite16')+'\n'+extract('dbpfWrite16','dbpfRebuildPackage')+'\n'+extract('dbpfRebuildPackage','dbpfReplaceSTBL');
 const ctx={Uint8Array,BigInt,TextDecoder,TextEncoder,Map,Set,Error,Number,String,Response,Blob,window:{},console};vm.runInNewContext(src,ctx);
 function u32(d,p,v){d[p]=v&255;d[p+1]=v>>>8&255;d[p+2]=v>>>16&255;d[p+3]=v>>>24&255}function u16(d,p,v){d[p]=v&255;d[p+1]=v>>>8}
