@@ -49,6 +49,8 @@ jobs:
         run: node tests/translator_batch_recovery.js
       - name: Run adaptive AI translation batch limit tests
         run: node tests/translator_ai_batch_limits.js
+      - name: Run translated batch result validation tests
+        run: node tests/translator_batch_result_validation.js
       - name: Run DBPF core regression tests
         run: node tests/dbpf_core.js
       - name: Run DBPF internal compression regression tests
