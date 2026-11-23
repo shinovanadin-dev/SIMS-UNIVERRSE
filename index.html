@@ -1213,6 +1213,16 @@ async function dbpfRunUnifiedTranslationPipeline(){
    }
   }catch(err){report.errors.push({phase:"scan",sourceIndex:src.index,targetIndex:target.index,error:String(err.message||err)})}
  }
+ // A failed scan means the package translation scope is incomplete; do not translate/rebuild a partial scan.
+ if(report.errors.some(e=>e.phase==="scan")){
+  report.rebuildStatus="blocked_scan_errors";report.verificationStatus="failed";
+  report.errors.push({phase:"scan_guard",error:"Translation blocked because one or more source/target STBL scans failed; no partial package rebuild was attempted."});
+  report.finishedAt=new Date().toISOString();
+  dbpfDownload(new TextEncoder().encode(JSON.stringify(report,null,2)),originalName.replace(/\\.[^.]+$/ ,"")+"_unified_translation_report","json");
+  setStatus("Unified translation aborted: STBL scan errors · source package unchanged");
+  alert("Translation aborted safely: STBL scan errors detected. Original package remains unchanged.");
+  return report;
+ }
  report.uniqueSourceStrings=normalizedMap.size;
  const queue=Array.from(normalizedMap.values());
  // Translation Memory first; only token-valid hits enter the merge.
