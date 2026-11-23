@@ -1,7 +1,7 @@
 const fs=require('fs'),assert=require('assert');
 const html=fs.readFileSync('index.html','utf8');
 function extract(name,next){const a=html.indexOf('function '+name+'('),b=html.indexOf(next,a);assert.ok(a>=0&&b>a,name+' exists');return html.slice(a,b).trim()}
-const token=extract('translatorTokenCheck','function translatorNormalizeKey');
+const token=extract('translatorTokens','function translatorNormalizeKey');
 const validator=extract('translatorValidateBatchResults','async function dbpfRunUnifiedTranslationPipeline');
 const check=new Function(token+';return translatorTokenCheck;')();
 const validate=new Function(token+'\n'+validator+';return translatorValidateBatchResults;')();
