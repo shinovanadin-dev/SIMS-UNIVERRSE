@@ -1188,6 +1188,7 @@ async function dbpfBuildSmartTranslationQueue(){
  alert("Smart queue built: "+report.uniqueTexts+" unique strings; "+report.tmReady+" ready from TM; "+report.needsAI+" for AI; "+report.tokenRejected+" token-rejected; "+report.errors.length+" errors. JSON downloaded.");
  return report;
 }
+function translatorBuildSafeBatches(queue,maxItems=25,maxChars=40000,maxText=8000){const batches=[],oversize=[];let batch=[],chars=0;for(const q of queue){const text=String(q.source??"");if(text.length>maxText){oversize.push(q);continue}if(batch.length&&(batch.length>=maxItems||chars+text.length>maxChars)){batches.push(batch);batch=[];chars=0}batch.push(q);chars+=text.length}if(batch.length)batches.push(batch);return {batches,oversize}}
 async function dbpfRunUnifiedTranslationPipeline(){
  if(!dbpfCurrent){alert("Load a .package first");return}
  const originalName=dbpfCurrent.name,originalBytes=new Uint8Array(dbpfCurrent.bytes),originalEntries=dbpfEntries.slice(),language=document.getElementById("translatorLanguage")?.value||"Russian (Русский)",report={tool:"Sims Universe Unified Package Translation",version:1,packageName:originalName,language,startedAt:new Date().toISOString(),sourceTables:0,targetTables:0,missingTargetTables:0,uniqueSourceStrings:0,existingTranslationsPreserved:0,tmApplied:0,aiTranslated:0,aiRetries:0,tokenRejected:0,aiFailed:0,mergeErrors:[],rebuildStatus:"not_started",verificationStatus:"not_started",resourceCountBefore:originalEntries.length,resourceCountAfter:null,errors:[]};
@@ -1228,11 +1229,13 @@ async function dbpfRunUnifiedTranslationPipeline(){
  // Translation Memory first; only token-valid hits enter the merge.
  for(const q of queue){const hit=translatorMemoryGet(language,q.source);if(hit){const guard=translatorTokenCheck({source:q.source,trans:hit});if(guard.ok){q.translation=hit;q.action="TM";report.tmApplied++}else{q.action="AI_TOKEN_REJECT";report.tokenRejected++}}}
  const aiQueue=queue.filter(q=>!q.translation);
- // Unified AI queue: deduplicated package-wide, batches of 25, two retry attempts per batch.
- for(let start=0;start<aiQueue.length;start+=25){
-  const batch=aiQueue.slice(start,start+25),batchNo=Math.floor(start/25)+1;let success=false,lastError="";
+ // Unified AI queue: safe batches capped by endpoint item and payload limits; two retries per batch.
+ const safeBatchPlan=translatorBuildSafeBatches(aiQueue,25,40000,8000),safeBatches=safeBatchPlan.batches;
+ safeBatchPlan.oversize.forEach(q=>{q.action="AI_FAILED_OVERSIZE";report.aiFailed++;report.errors.push({phase:"AI",batch:0,error:"Source string exceeds 8000-character endpoint limit; skipped safely",sourceKey:q.sourceKey})});
+ for(let batchIndex=0;batchIndex<safeBatches.length;batchIndex++){
+  const batch=safeBatches[batchIndex],batchNo=batchIndex+1;let success=false,lastError="";
   for(let attempt=1;attempt<=2&&!success;attempt++){
-   setStatus("Unified AI queue · batch "+batchNo+"/"+Math.ceil(aiQueue.length/25)+" · attempt "+attempt+" · translated "+report.aiTranslated+"/"+aiQueue.length);
+   setStatus("Unified AI queue · batch "+batchNo+"/"+safeBatches.length+" · attempt "+attempt+" · translated "+report.aiTranslated+"/"+aiQueue.length);
    try{const response=await fetch("/api/translate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({target_language:language,texts:batch.map(q=>q.source)})}),data=await response.json();
     if(!response.ok)throw Error("HTTP "+response.status+" "+(data.error||"translation endpoint failed"));
     if(!Array.isArray(data.translations)||data.translations.length!==batch.length)throw Error("Batch response length mismatch");
