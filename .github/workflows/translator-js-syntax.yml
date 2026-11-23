@@ -57,6 +57,8 @@ jobs:
         run: node tests/stbl_core.js
       - name: Run package rebuild regression tests
         run: node tests/package_rebuild.js
+      - name: Full synthetic translator end-to-end test
+        run: node tests/translator_full_e2e.js
       - name: Validate Python server syntax
         run: python3 -m py_compile server.py
       - name: Run translation token regression tests
