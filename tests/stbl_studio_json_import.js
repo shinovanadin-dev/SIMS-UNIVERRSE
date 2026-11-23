@@ -4,9 +4,9 @@ const match=html.match(/function translatorNormalizeSTBLStudioJSON\(data\)\{[\s\
 assert(match,"STBL Studio JSON normalizer found in app");
 const context={};vm.runInNewContext(match[0]+";this.fn=translatorNormalizeSTBLStudioJSON",context);
 const normalize=context.fn;
-const rows=normalize([{key:"0xabc",value:"Hello"},{key:255,string:"World"},{key:"00ff",value:"{0.SimFirstName} ready"}]);
+const rows=normalize([{key:"0xabc",value:"Hello"},{key:255,string:"World"},{key:"1234",value:"{0.SimFirstName} ready"}]);
 assert.equal(rows.length,3);
-assert.equal(rows[0].key,"00000ABC");assert.equal(rows[1].key,"000000FF");assert.equal(rows[2].key,"000000FF".replace("000000FF","000000FF")); // key normalizer baseline
+assert.equal(rows[0].key,"00000ABC");assert.equal(rows[1].key,"000000FF");assert.equal(rows[2].key,"00001234");
 assert.equal(rows[0].source,"Hello");assert.equal(rows[1].source,"World");assert.equal(rows[2].trans,"");
 assert.throws(()=>normalize([{key:"bad-key",value:"x"}]),/Invalid hex key/);
 assert.throws(()=>normalize([{key:1,value:"x"},{key:"00000001",value:"dup"}]),/Duplicate STBL key/);
