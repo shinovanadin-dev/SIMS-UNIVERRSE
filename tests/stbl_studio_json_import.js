@@ -1,0 +1,16 @@
+const fs=require("fs"),vm=require("vm"),assert=require("assert");
+const html=fs.readFileSync("index.html","utf8");
+const match=html.match(/function translatorNormalizeSTBLStudioJSON\(data\)\{[\s\S]*?\n\}/);
+assert(match,"STBL Studio JSON normalizer found in app");
+const context={};vm.runInNewContext(match[0]+";this.fn=translatorNormalizeSTBLStudioJSON",context);
+const normalize=context.fn;
+const rows=normalize([{key:"0xabc",value:"Hello"},{key:255,string:"World"},{key:"00ff",value:"{0.SimFirstName} ready"}]);
+assert.equal(rows.length,3);
+assert.equal(rows[0].key,"00000ABC");assert.equal(rows[1].key,"000000FF");assert.equal(rows[2].key,"000000FF".replace("000000FF","000000FF")); // key normalizer baseline
+assert.equal(rows[0].source,"Hello");assert.equal(rows[1].source,"World");assert.equal(rows[2].trans,"");
+assert.throws(()=>normalize([{key:"bad-key",value:"x"}]),/Invalid hex key/);
+assert.throws(()=>normalize([{key:1,value:"x"},{key:"00000001",value:"dup"}]),/Duplicate STBL key/);
+assert.throws(()=>normalize([{key:1,value:5}]),/no string value/);
+assert.throws(()=>normalize({entries:[]} ),/must be an array/);
+assert.throws(()=>normalize(Array(100001).fill({key:1,value:""})),/100,000/);
+console.log("STBL Studio JSON import normalization regressions passed");
