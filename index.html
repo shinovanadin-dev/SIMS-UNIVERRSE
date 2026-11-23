@@ -1164,11 +1164,11 @@ async function dbpfBuildSmartTranslationQueue(){
     const key=String(row.key).toUpperCase(),t=targetMap.get(key),existing=t&&String(t.text||"").trim()&&String(t.text).trim()!==source;
     if(existing){item.alreadyTranslated++;report.alreadyTranslated++;continue}
     const normalized=source.toLowerCase(),globalItem=unique.get(normalized);
-    if(globalItem){globalItem.occurrences.push({resourceIndex:src.index,key:"0x"+key});item.queue.push({key:"0x"+key,source,action:globalItem.action,queueId:globalItem.id});continue}
+    if(globalItem){globalItem.occurrences.push({resourceIndex:src.index,key:"0x"+key});if(globalItem.action==="TM_APPLY")item.tmReady++;else if(globalItem.action==="AI_RETRANSLATE_TOKEN_REJECT")item.tokenRejected++;else item.needsAI++;item.queue.push({key:"0x"+key,source,action:globalItem.action,queueId:globalItem.id});continue}
     const id="q"+(unique.size+1),hit=translatorMemoryGet(language,source),check=hit?translatorTokenCheck({source,trans:hit}):null;
     let action=hit?(check.ok?"TM_APPLY":"AI_RETRANSLATE_TOKEN_REJECT"):"AI_TRANSLATE";
     const entry={id,source,translation:action==="TM_APPLY"?hit:null,action,occurrences:[{resourceIndex:src.index,key:"0x"+key}]};
-    unique.set(normalized,entry);item.queue.push({key:"0x"+key,source,translation:entry.translation,action,queueId:id});
+    unique.set(normalized,entry);if(action==="TM_APPLY")item.tmReady++;else if(action==="AI_RETRANSLATE_TOKEN_REJECT")item.tokenRejected++;else item.needsAI++;item.queue.push({key:"0x"+key,source,translation:entry.translation,action,queueId:id});
    }
    item.status=target?"ready":"no_RUS_target";
   }catch(err){item.status="error";item.error=String(err.message||err);report.errors.push({sourceIndex:src.index,error:item.error})}
