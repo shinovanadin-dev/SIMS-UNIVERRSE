@@ -1,0 +1,55 @@
+const fs=require("fs"),vm=require("vm"),assert=require("assert");
+const html=fs.readFileSync("index.html","utf8");
+const start=html.indexOf('const TRANSLATOR_MEMORY_KEY="simsUniverseTranslationMemoryV1";');
+const end=html.indexOf("async function translatorAITranslateUntranslated(){",start);
+assert(start>=0&&end>start,"translation memory functions exist");
+const code=html.slice(start,end);
+function harness(initial={},file=null,confirmResult=true){
+ const store=new Map([["simsUniverseTranslationMemoryV1",JSON.stringify(initial)]]);
+ const alerts=[],downloads=[];
+ const anchor={click(){downloads.push({name:this.download,url:this.href})}};
+ const input={files:file?[file]:[],click(){if(this.onchange)this.onchange()}};
+ const ctx={localStorage:{getItem:k=>store.has(k)?store.get(k):null,setItem:(k,v)=>store.set(k,v),removeItem:k=>store.delete(k)},
+ document:{createElement:t=>t==="input"?input:anchor},Blob:class{constructor(parts,opts){this.parts=parts;this.opts=opts}},URL:{createObjectURL:b=>"blob:mock",revokeObjectURL:u=>{}},alert:m=>alerts.push(m),confirm:m=>confirmResult,JSON,Object,String,Date,Array};
+ vm.runInNewContext(code,ctx);
+ return{ctx,store,alerts,downloads,input,read:()=>JSON.parse(store.get("simsUniverseTranslationMemoryV1")||"{}")};
+}
+(async()=>{
+ let h=harness({"russian|old":"Старое","russian|same":"Первое"});
+ h.ctx.translatorMemoryExport();
+ assert.equal(h.downloads.length,1,"export clicks download anchor");
+ assert.equal(h.downloads[0].name,"sims-universe-translation-memory.json","export filename correct");
+ assert.equal(h.alerts.length,1,"export feedback shown");
+ h=harness({"russian|existing":"Сохранено"},{size:123,text:async()=>JSON.stringify({format:"SimsUniverseTranslationMemory",entries:{"russian|existing":"Обновлено","russian|new":"Новое","badkey":"Игнор","russian|blank":"   ","russian|number":42}})});
+ h.ctx.translatorMemoryImport();await new Promise(r=>setTimeout(r,0));
+ let d=h.read();
+ assert.equal(d["russian|existing"],"Обновлено","import overwrites same key");
+ assert.equal(d["russian|new"],"Новое","import adds new entry");
+ assert.equal(d.badkey,undefined,"malformed key skipped");
+ assert.equal(d["russian|blank"],undefined,"blank translation filtered");
+ assert.equal(d["russian|number"],undefined,"non-string translation filtered");
+ assert(h.alerts[0].includes("Добавлено/обновлено: 2"),"import reports clean record count");
+ h=harness({}, {size:10*1024*1024+1,text:async()=> "{}"});
+ h.ctx.translatorMemoryImport();await new Promise(r=>setTimeout(r,0));
+ assert(h.alerts[0].includes("больше 10 МБ"),"oversize file rejected");
+ h=harness({}, {size:10,text:async()=> "not json"});
+ h.ctx.translatorMemoryImport();await new Promise(r=>setTimeout(r,0));
+ assert(h.alerts[0].includes("Импорт памяти отменён"),"malformed JSON safely rejected");
+ h=harness({"russian|a":"А","russian|b":"Б"});
+ h.ctx.translatorMemoryClear();
+ assert.equal(h.store.has("simsUniverseTranslationMemoryV1"),false,"confirmed clear removes memory");
+ assert(h.alerts.some(a=>a.includes("очищена")),"clear success feedback");
+ h=harness({"russian|a":"А"},null,false);
+ h.ctx.translatorMemoryClear();
+ assert.equal(h.store.has("simsUniverseTranslationMemoryV1"),true,"cancel clear preserves data");
+ h=harness({});
+ h.ctx.translatorMemoryClear();
+ assert(h.alerts[0].includes("уже пустая"),"empty memory clear handled");
+ let cap={};for(let i=0;i<3000;i++)cap["russian|"+i]="T"+i;
+ h=harness(cap,{size:1,text:async()=>JSON.stringify({entries:{"russian|extra":"Extra","russian|last":"Last"}})});
+ h.ctx.translatorMemoryImport();await new Promise(r=>setTimeout(r,0));
+ d=h.read();assert.equal(Object.keys(d).length,3000,"import merge respects 3000-entry cap");
+ assert.equal(d["russian|extra"],undefined,"oldest record evicted when cap exceeded");
+ assert.equal(d["russian|last"],"Last","new records retained after cap");
+ console.log("Translation memory import/export/clear regression: 17 checks passed");
+})().catch(e=>{console.error(e);process.exit(1)});
