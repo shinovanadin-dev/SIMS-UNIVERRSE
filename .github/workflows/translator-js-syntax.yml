@@ -53,6 +53,8 @@ jobs:
         run: node tests/translator_batch_result_validation.js
       - name: Run STBL Studio JSON compatibility import tests
         run: node tests/stbl_studio_json_import.js
+      - name: Run STBL Studio JSON compatibility export tests
+        run: node tests/stbl_studio_json_export.js
       - name: Run DBPF core regression tests
         run: node tests/dbpf_core.js
       - name: Run DBPF internal compression regression tests
