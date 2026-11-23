@@ -32,3 +32,11 @@ const tables=[];for(const e of reopened.entries.filter(e=>e.type===0x220557DA))t
 must(rows.some(r=>r.text==='Здравствуйте {0}'),'translated row roundtrip');must(!rows.some(r=>r.text==='Open'),'existing translation source replaced by stored Russian');must(rows.some(r=>r.text==='Bad [PLAYER]'),'rejected token source remains');must(rows.some(r=>r.text==='Открыть'),'existing RU remains after reopen');
 let opaque=reopened.entries.find(e=>e.type===0xDEADBEEF),op=ctx.dbpfCurrent.bytes.slice(opaque.offset,opaque.offset+opaque.size);must(op.length===originals[2].length&&op.every((v,i)=>v===originals[2][i]),'opaque resource unchanged byte-for-byte');must(rebuildCalls===1,'no extra rebuild');console.log('FULL TRANSLATOR E2E PASS: AI mock, HTTP 503 surfacing, token rejection, existing-RU preservation, exactly one rebuild, DBPF reopen, STBL/resource/TGI/opaque verification');
 })().catch(e=>{console.error(e.stack||e);process.exitCode=1});
+
+// Fail-closed production guard regressions (behavioral harness for the guard's conditions).
+const guardSource=productionPipeline.slice(productionPipeline.indexOf(' // A failed scan means the package translation scope is incomplete;'),productionPipeline.indexOf(' report.uniqueSourceStrings=normalizedMap.size;'));
+assert.ok(guardSource.includes('return report'),'scan guard exits pipeline early');
+assert.ok(guardSource.includes('dbpfDownload'),'scan guard exports diagnostic report');
+assert.ok(!guardSource.includes('fetch('),'scan guard does not call translation API');
+assert.ok(!guardSource.includes('dbpfRebuildPackage('),'scan guard does not rebuild package');
+assert.ok(guardSource.includes('source package unchanged'),'scan guard communicates source preservation');
