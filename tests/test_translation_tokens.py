@@ -69,5 +69,36 @@ class TokenTests(unittest.TestCase):
         src = 'Gameplay setting'
         self.assertEqual(self.safe(src, src), src)
 
+
+    def test_tag_attributes_are_preserved_exactly(self):
+        src = '<link="0x123">Open</link>'
+        dst = '<link="0x123">Открыть</link>'
+        self.assertEqual(self.safe(src, dst), dst)
+
+    def test_tag_attribute_change_falls_back(self):
+        src = '<link="0x123">Open</link>'
+        dst = '<link="0x999">Открыть</link>'
+        self.assertEqual(self.safe(src, dst), src)
+
+    def test_multiple_printf_tokens_reordered(self):
+        src = '%1$s: %2$d (%3$s)'
+        dst = '%3$s (%2$d): %1$s'
+        self.assertEqual(self.safe(src, dst), dst)
+
+    def test_token_multiplicity_must_match(self):
+        src = '{0} {0} {1}'
+        dst = '{1} {0}'
+        self.assertEqual(self.safe(src, dst), src)
+
+    def test_crlf_line_endings_must_match(self):
+        src = 'One\\r\\nTwo'
+        dst = 'Один\\nДва'
+        self.assertEqual(self.safe(src, dst), src)
+
+    def test_unicode_text_without_tokens_translates(self):
+        src = 'Hello, world! 日本語 café'
+        dst = 'Привет! 日本語 café'
+        self.assertEqual(self.safe(src, dst), dst)
+
 if __name__ == '__main__':
     unittest.main()
