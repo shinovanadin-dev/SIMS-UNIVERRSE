@@ -1152,17 +1152,30 @@ function dbpfExtractGeneric(entry){dbpfExtract(entry).then(bytes=>{dbpfDownloadB
 async function dbpfBuildSmartTranslationQueue(){
  if(!dbpfCurrent){alert("Load a .package first");return}
  const language=document.getElementById("translatorLanguage")?.value||"Russian (Русский)",engLocale=0,ruLocale=18,suffixMask=0x00FFFFFFFFFFFFFFn;
- const report={tool:"Sims Universe Translator Smart Queue",createdAt:new Date().toISOString(),packageName:dbpfCurrent.name,language,resources:[],uniqueTexts:0,tmReady:0,tokenRejected:0,needsAI:0,alreadyTranslated:0,errors:[]};
- const seen=new Set();
+ const report={tool:"Sims Universe Translator Smart Queue",createdAt:new Date().toISOString(),packageName:dbpfCurrent.name,language,resources:[],uniqueTexts:0,tmReady:0,tokenRejected:0,needsAI:0,alreadyTranslated:0,errors:[],globalQueue:[]};
+ const unique=new Map();
  for(const src of dbpfEntries.filter(e=>e.type===DBPF_STBL_TYPE&&Number(BigInt("0x"+e.instance)>>56n)===engLocale)){
-  const suffix=BigInt("0x"+src.instance)&suffixMask, target=dbpfEntries.find(e=>e.type===DBPF_STBL_TYPE&&e.group===src.group&&Number(BigInt("0x"+e.instance)>>56n)===ruLocale&&((BigInt("0x"+e.instance)&suffixMask)===suffix));
+  const suffix=BigInt("0x"+src.instance)&suffixMask,target=dbpfEntries.find(e=>e.type===DBPF_STBL_TYPE&&e.group===src.group&&Number(BigInt("0x"+e.instance)>>56n)===ruLocale&&((BigInt("0x"+e.instance)&suffixMask)===suffix));
   const item={sourceIndex:src.index,targetIndex:target?.index??null,instance:src.instance,strings:0,alreadyTranslated:0,tmReady:0,tokenRejected:0,needsAI:0,status:"pending",queue:[]};
-  try{const parsed=stblParse(await dbpfExtract(src)),targetParsed=target?stblParse(await dbpfExtract(target)):null,targetMap=new Map((targetParsed?.entries||[]).map(x=>[String(x.key).toUpperCase(),x]));
-   for(const row of parsed.entries){const source=String(row.text||"").trim();if(!source)continue;item.strings++;const key=String(row.key).toUpperCase(),t=targetMap.get(key),existing=t&&String(t.text||"").trim()&&String(t.text).trim()!==source;if(existing){item.alreadyTranslated++;report.alreadyTranslated++;continue}if(!seen.has(source.toLowerCase()))report.uniqueTexts++;seen.add(source.toLowerCase());const hit=translatorMemoryGet(language,source);if(hit){const check=translatorTokenCheck({source,trans:hit});if(check.ok){item.tmReady++;report.tmReady++;item.queue.push({key:"0x"+key,source,translation:hit,action:"TM_APPLY"})}else{item.tokenRejected++;report.tokenRejected++;item.queue.push({key:"0x"+key,source,action:"AI_RETRANSLATE_TOKEN_REJECT"})}}else{item.needsAI++;report.needsAI++;item.queue.push({key:"0x"+key,source,action:"AI_TRANSLATE"})}}
+  try{
+   const parsed=stblParse(await dbpfExtract(src)),targetParsed=target?stblParse(await dbpfExtract(target)):null,targetMap=new Map((targetParsed?.entries||[]).map(x=>[String(x.key).toUpperCase(),x]));
+   for(const row of parsed.entries){
+    const source=String(row.text||"").trim();if(!source)continue;item.strings++;
+    const key=String(row.key).toUpperCase(),t=targetMap.get(key),existing=t&&String(t.text||"").trim()&&String(t.text).trim()!==source;
+    if(existing){item.alreadyTranslated++;report.alreadyTranslated++;continue}
+    const normalized=source.toLowerCase(),globalItem=unique.get(normalized);
+    if(globalItem){globalItem.occurrences.push({resourceIndex:src.index,key:"0x"+key});item.queue.push({key:"0x"+key,source,action:globalItem.action,queueId:globalItem.id});continue}
+    const id="q"+(unique.size+1),hit=translatorMemoryGet(language,source),check=hit?translatorTokenCheck({source,trans:hit}):null;
+    let action=hit?(check.ok?"TM_APPLY":"AI_RETRANSLATE_TOKEN_REJECT"):"AI_TRANSLATE";
+    const entry={id,source,translation:action==="TM_APPLY"?hit:null,action,occurrences:[{resourceIndex:src.index,key:"0x"+key}]};
+    unique.set(normalized,entry);item.queue.push({key:"0x"+key,source,translation:entry.translation,action,queueId:id});
+   }
    item.status=target?"ready":"no_RUS_target";
   }catch(err){item.status="error";item.error=String(err.message||err);report.errors.push({sourceIndex:src.index,error:item.error})}
   report.resources.push(item);
  }
+ report.globalQueue=Array.from(unique.values());report.uniqueTexts=report.globalQueue.length;
+ for(const q of report.globalQueue){if(q.action==="TM_APPLY")report.tmReady++;else if(q.action==="AI_RETRANSLATE_TOKEN_REJECT")report.tokenRejected++;else report.needsAI++}
  report.queueStatus=report.errors.length?"partial":"complete";
  const bytes=new TextEncoder().encode(JSON.stringify(report,null,2));dbpfDownload(bytes,dbpfCurrent.name.replace(/\\.[^.]+$/,"")+"_smart_translation_queue","json");
  const meta=document.getElementById("dbpfMeta");if(meta)meta.textContent="Smart queue: unique "+report.uniqueTexts+" · TM "+report.tmReady+" · AI "+report.needsAI+" · token rejects "+report.tokenRejected+" · errors "+report.errors.length;
