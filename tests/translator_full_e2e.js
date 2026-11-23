@@ -60,3 +60,21 @@ assert.strictEqual(guardReport.verificationStatus,'failed','scan error marks ver
 assert.strictEqual(guardDownload,1,'scan guard emits report exactly once');
 assert.strictEqual(guardAlert,1,'scan guard alerts exactly once');
 assert.ok(guardStatus.includes('source package unchanged'),'scan guard status confirms source preserved');
+ // Behavioral execution of production merge-error guard: fail closed, report, no rebuild/downloaded package.
+ const mergeGuardStart=productionPipeline.indexOf(' if(report.mergeErrors.length){');
+ const mergeGuardEnd=productionPipeline.indexOf(' if(!replacements.size){',mergeGuardStart);
+ assert.ok(mergeGuardStart>=0&&mergeGuardEnd>mergeGuardStart,'production merge guard block found');
+ const mergeGuardBlock=productionPipeline.slice(mergeGuardStart,mergeGuardEnd);
+ assert.ok(mergeGuardBlock.includes('blocked_merge_errors'),'merge guard sets blocked status');
+ assert.ok(!mergeGuardBlock.includes('dbpfRebuildPackage('),'merge guard prevents rebuild');
+ let mergeGuardDownload=0,mergeGuardAlert=0,mergeGuardStatus='';
+ const mergeGuardReport={mergeErrors:[{targetIndex:3,error:'fixture encoding failure'}],errors:[],rebuildStatus:'not_started',verificationStatus:'not_started',finishedAt:null};
+ const mergeGuardExec=new Function('report','originalName','setStatus','TextEncoder','dbpfDownload','alert',mergeGuardBlock);
+ const mergeGuardReturn=mergeGuardExec(mergeGuardReport,'fixture.package',s=>mergeGuardStatus=s,TextEncoder,()=>mergeGuardDownload++,()=>mergeGuardAlert++);
+ assert.strictEqual(mergeGuardReturn,mergeGuardReport,'merge guard returns diagnostic report');
+ assert.strictEqual(mergeGuardReport.rebuildStatus,'blocked_merge_errors','merge error blocks rebuild');
+ assert.strictEqual(mergeGuardReport.verificationStatus,'failed','merge error marks verification failed');
+ assert.strictEqual(mergeGuardDownload,1,'merge guard emits report once');
+ assert.strictEqual(mergeGuardAlert,1,'merge guard alerts once');
+ assert.ok(mergeGuardStatus.includes('source package unchanged'),'merge guard status confirms source preserved');
+
