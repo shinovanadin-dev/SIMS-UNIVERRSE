@@ -12,7 +12,9 @@ const resources=[
 const sandbox={DBPF_STBL_TYPE:0x220557DA,dbpfCurrent:{name:'Fixture.package',bytes:new Uint8Array(100)},dbpfEntries:resources,
  dbpfExtract:async e=>new Uint8Array([e.index]),
  stblParse:b=>{let id=b[0];if(id===3)throw Error('fixture parse failure');return {entries:id===0?[{text:'Hello'},{text:'Hello'},{text:''}]:[{text:'Welcome'}]}},
- dbpfDownload:(bytes,name,ext)=>captured={json:new TextDecoder().decode(bytes),name,ext},\n translatorMemoryGet:(lang,src)=>src==='Hello'?'Привет':src==='Welcome'?'ошибка токена':null,\n translatorTokenCheck:({source,trans})=>({ok:source==='Hello'&&trans==='Привет'}),
+ dbpfDownload:(bytes,name,ext)=>captured={json:new TextDecoder().decode(bytes),name,ext},
+ translatorMemoryGet:(lang,src)=>src==='Hello'?'Привет':src==='Welcome'?'ошибка токена':null,
+ translatorTokenCheck:({source,trans})=>({ok:source==='Hello'&&trans==='Привет'}),
  document:{getElementById:id=>meta},alert:m=>alerts.push(m),TextEncoder,console};
 vm.runInNewContext(fn,sandbox);
 (async()=>{await sandbox.dbpfScanPackageTranslationCoverage();const report=JSON.parse(captured.json);
@@ -22,7 +24,12 @@ assert.equal(report.stblStrings,4,'strings count across readable tables');
 assert.equal(report.emptyStrings,1,'empty text counted');
 assert.equal(report.duplicateTexts,1,'duplicate text counted');
 assert.equal(report.uniqueNonEmptyTexts,2,'unique non-empty count');
-assert.equal(report.errors.length,1,'one broken STBL isolated');\nassert.equal(report.translationMemoryHits,1,'valid TM translation counted');\nassert.equal(report.translationMemoryTokenRejected,1,'invalid TM entry rejected');\nassert.equal(report.translationMemoryMisses,0,'no unique-text TM misses');\nassert.equal(report.tmUsablePercent,50,'usable TM percent calculated');\nassert.equal(report.resources[0].tmHits,1,'per-resource TM hit counted');
+assert.equal(report.errors.length,1,'one broken STBL isolated');
+assert.equal(report.translationMemoryHits,1,'valid TM translation counted');
+assert.equal(report.translationMemoryTokenRejected,1,'invalid TM entry rejected');
+assert.equal(report.translationMemoryMisses,0,'no unique-text TM misses');
+assert.equal(report.tmUsablePercent,50,'usable TM percent calculated');
+assert.equal(report.resources[0].tmHits,1,'per-resource TM hit counted');
 assert.equal(report.scanStatus,'partial','partial status reported');
 assert.equal(report.resources[2].status,'error','failed resource recorded');
 assert.equal(captured.ext,'json','JSON report emitted');
