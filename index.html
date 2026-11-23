@@ -1176,6 +1176,12 @@ async function dbpfBuildSmartTranslationQueue(){
  }
  report.globalQueue=Array.from(unique.values());report.uniqueTexts=report.globalQueue.length;
  for(const q of report.globalQueue){if(q.action==="TM_APPLY")report.tmReady++;else if(q.action==="AI_RETRANSLATE_TOKEN_REJECT")report.tokenRejected++;else report.needsAI++}
+ report.noRussianTarget=report.resources.filter(r=>r.targetIndex===null).length;
+ report.resourceErrors=report.resources.filter(r=>r.status==="error").length;
+ report.classifiedTexts=report.tmReady+report.tokenRejected+report.needsAI;
+ report.safeTMPercent=report.uniqueTexts?Math.round(report.tmReady/report.uniqueTexts*100):0;
+ report.aiQueuePercent=report.uniqueTexts?Math.round(report.needsAI/report.uniqueTexts*100):0;
+ report.existingTranslationPercent=report.uniqueTexts?Math.round(report.alreadyTranslated/report.uniqueTexts*100):0;
  report.queueStatus=report.errors.length?"partial":"complete";
  const bytes=new TextEncoder().encode(JSON.stringify(report,null,2));dbpfDownload(bytes,dbpfCurrent.name.replace(/\\.[^.]+$/,"")+"_smart_translation_queue","json");
  const meta=document.getElementById("dbpfMeta");if(meta)meta.textContent="Smart queue: unique "+report.uniqueTexts+" · TM "+report.tmReady+" · AI "+report.needsAI+" · token rejects "+report.tokenRejected+" · errors "+report.errors.length;
