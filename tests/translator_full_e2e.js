@@ -40,3 +40,14 @@ assert.ok(guardSource.includes('dbpfDownload'),'scan guard exports diagnostic re
 assert.ok(!guardSource.includes('fetch('),'scan guard does not call translation API');
 assert.ok(!guardSource.includes('dbpfRebuildPackage('),'scan guard does not rebuild package');
 assert.ok(guardSource.includes('source package unchanged'),'scan guard communicates source preservation');
+// Execute the extracted production scan-guard block with injected runtime dependencies.
+let guardDownload=0,guardAlert=0,guardStatus='';
+const guardReport={errors:[{phase:'scan',error:'fixture scan failure'}],mergeErrors:[],rebuildStatus:'not_started',verificationStatus:'not_started'};
+const guardExec=new Function('report','originalName','setStatus','dbpfDownload','TextEncoder','alert',guardSource);
+const guardReturn=guardExec(guardReport,'fixture.package',s=>guardStatus=s,()=>guardDownload++,TextEncoder,()=>guardAlert++);
+assert.strictEqual(guardReturn,guardReport,'production scan guard returns report');
+assert.strictEqual(guardReport.rebuildStatus,'blocked_scan_errors','scan error blocks rebuild');
+assert.strictEqual(guardReport.verificationStatus,'failed','scan error marks verification failed');
+assert.strictEqual(guardDownload,1,'scan guard emits report exactly once');
+assert.strictEqual(guardAlert,1,'scan guard alerts exactly once');
+assert.ok(guardStatus.includes('source package unchanged'),'scan guard status confirms source preserved');
