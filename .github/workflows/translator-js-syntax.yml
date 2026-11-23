@@ -41,6 +41,8 @@ jobs:
         run: node tests/translator_memory_io.js
       - name: Run package scan coverage regressions
         run: node tests/dbpf_package_scan.js
+      - name: Run smart package translation queue regressions
+        run: node tests/dbpf_smart_queue.js
       - name: Run bulk STBL JSON export tests
         run: node tests/dbpf_bulk_stbl_export.js
       - name: Run translator batch recovery tests
