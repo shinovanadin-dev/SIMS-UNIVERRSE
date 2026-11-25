@@ -29,7 +29,7 @@ async function suApiBatch(batch){
  }
  let last="";
  for(let n=1;n<=3;n++){try{return await call(batch)}catch(e){last=e.message||String(e);if(n<3)await new Promise(r=>setTimeout(r,700*n))}}
- if(batch.length>1){const mid=Math.ceil(batch.length/2);suLog("Adaptive split: "+batch.length+" → "+mid+" + "+(batch.length-mid);const left=await suApiBatch(batch.slice(0,mid));const right=await suApiBatch(batch.slice(mid));return left.concat(right)}
+ if(batch.length>1){const mid=Math.ceil(batch.length/2);suLog("Adaptive split: "+batch.length+" → "+mid+" + "+(batch.length-mid));const left=await suApiBatch(batch.slice(0,mid));const right=await suApiBatch(batch.slice(mid));return left.concat(right)}
  throw Error(last)
 }
 let last="";for(let n=1;n<=3;n++)try{return await call(batch)}catch(e){last=e.message||String(e);if(n<3)await new Promise(r=>setTimeout(r,700*n))}if(batch.length>1){let mid=Math.ceil(batch.length/2);suLog("Adaptive split: "+batch.length+" → "+mid+" + "+(batch.length-mid);return(await suApiBatch(batch.slice(0,mid))).concat(await suApiBatch(batch.slice(mid)))}throw Error(last)}
