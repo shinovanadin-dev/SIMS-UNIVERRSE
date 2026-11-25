@@ -25,8 +25,8 @@ jobs:
           open("/tmp/site-inline.js", "w", encoding="utf-8").write(js)
           print(f"Extracted {len(scripts)} inline script(s)")
           PY
-      - name: Check JavaScript syntax
-        run: node --check /tmp/site-inline.js || { nl -ba /tmp/site-inline.js | sed -n '1638,1655p'; exit 1; }
+      - name: Locate JavaScript syntax error
+        run: npx --yes prettier /tmp/site-inline.js --parser babel >/dev/null
       - name: Test DBPF parser fixture cases
         run: node tests/mod-manager-dbpf.test.js
       - name: Test backup verification and manifest status
