@@ -12,7 +12,7 @@ def _tokens(text):
     return TOKEN_PATTERN.findall(text)
 def _linebreak_signature(text):
     return (text.count("\r\n"), text.count("\n") - text.count("\r\n"), text.count("\r") - text.count("\r\n"))
-CONDITIONAL_PATTERN = re.compile(r"^\\{((?:[MF]\\d*|\\d+[MF]|[SP]\\d*)\\.(.+))\\}$", re.I)
+CONDITIONAL_PATTERN = re.compile(r"^\{((?:[MF]\d*|\d+[MF]|[SP]\d*)\.(.+))\}$", re.I)
 def _token_signature(text):
     exact, families = Counter(), Counter()
     for token in TOKEN_PATTERN.findall(text):
@@ -51,6 +51,12 @@ class Handler(BaseHTTPRequestHandler):
             try:
                 with open('/app/index.html','rb') as f: data=f.read()
                 self.send_response(200); self.send_header('Content-Type','text/html; charset=utf-8'); self.send_header('Content-Length',str(len(data))); self.end_headers(); self.wfile.write(data)
+            except Exception as e:
+                self.send_error(500,str(e))
+        elif path == '/package-translator.js':
+            try:
+                with open('/app/package-translator.js','rb') as f: data=f.read()
+                self.send_response(200); self.send_header('Content-Type','application/javascript; charset=utf-8'); self.send_header('Content-Length',str(len(data))); self.send_header('Cache-Control','no-store'); self.end_headers(); self.wfile.write(data)
             except Exception as e:
                 self.send_error(500,str(e))
         elif path == '/favicon.ico':
