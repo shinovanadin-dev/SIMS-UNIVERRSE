@@ -4,7 +4,7 @@ import unittest
 from pathlib import Path
 
 TREE = ast.parse(Path('server.py').read_text(encoding='utf-8'))
-NODES = [n for n in TREE.body if (isinstance(n, ast.Assign) and any(isinstance(t, ast.Name) and t.id == 'TOKEN_PATTERN' for t in n.targets)) or (isinstance(n, ast.FunctionDef) and n.name in {'_tokens', '_safe_translation', '_linebreak_signature'}) or (isinstance(n, ast.ImportFrom) and n.module == 'collections')]
+NODES = [n for n in TREE.body if (isinstance(n, ast.Assign) and any(isinstance(t, ast.Name) and t.id in {'TOKEN_PATTERN', 'CONDITIONAL_PATTERN'} for t in n.targets)) or (isinstance(n, ast.FunctionDef) and n.name in {'_tokens', '_token_signature', '_safe_translation', '_linebreak_signature'}) or (isinstance(n, ast.ImportFrom) and n.module == 'collections')]
 NS = {'re': re}
 exec(compile(ast.Module(body=NODES, type_ignores=[]), 'server.py', 'exec'), NS)
 
