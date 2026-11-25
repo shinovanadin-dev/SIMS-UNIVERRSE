@@ -7,6 +7,7 @@ extract("dbpfU32","dbpfU16"),extract("dbpfU16","dbpfParse"),extract("dbpfParse",
 extract("dbpfIsRefPackCandidate","dbpfInternalDecode"),extract("dbpfInternalDecode","dbpfExtract"),extract("stblU16","stblU32"),extract("stblU32","stblU64"),extract("stblU64","stblParse"),extract("stblParse","stblEncode"),extract("stblEncode","stblKeyNumber"),extract("stblKeyNumber","stblLoadFile"),
 extract("dbpfWrite32","dbpfWrite16"),extract("dbpfWrite16","dbpfRebuildPackage"),extract("dbpfRebuildPackage","dbpfReplaceSTBL"),extract("dbpfExtractFromBytes","dbpfRender")
 ].join("\n");
+const DBPF_STBL_TYPE=0x220557DA;
 const storage=new Map();
 const fakeIDB={
  open(){const req={};setTimeout(()=>{const db={objectStoreNames:{contains:()=>storage.has("__created")},createObjectStore(){storage.set("__created",true)},close(){},transaction(){const tx={oncomplete:null,onerror:null,onabort:null,objectStore(){return{get(k){const r={};setTimeout(()=>{r.result=storage.get(k);r.onsuccess?.({target:r})},0);return r},put(v){storage.set(v.id,v);setTimeout(()=>tx.oncomplete?.(),0)}}}};return tx}};req.result=db;req.onupgradeneeded?.({target:req});req.onsuccess?.({target:req})},0);return req}
