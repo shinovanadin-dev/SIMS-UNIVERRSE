@@ -27,3 +27,5 @@ jobs:
           PY
       - name: Check JavaScript syntax
         run: node --check /tmp/site-inline.js || { nl -ba /tmp/site-inline.js | sed -n '1638,1655p'; exit 1; }
+      - name: Test DBPF parser fixture cases
+        run: node tests/mod-manager-dbpf.test.js
