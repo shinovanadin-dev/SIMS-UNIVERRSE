@@ -28,15 +28,16 @@ jobs:
               Path(f"/tmp/inline-{i}.js").write_text(script, encoding="utf-8")
           print(f"Extracted {len(scripts)} inline scripts")
           PY
-      - name: Check JavaScript syntax
-        run: node --check package-translator.js
-      - name: Test package translator token validator
-        run: node tests/package-translator-token-tests.js
+      - name: Check inline JavaScript syntax
         run: |
           set -e
           for file in /tmp/inline-*.js; do
             node --check "$file"
           done
+      - name: Check external package translator JavaScript
+        run: node --check package-translator.js
+      - name: Test package translator token validator
+        run: node tests/package-translator-token-tests.js
 
       - name: Run translation memory regressions
         run: node tests/translator_memory.js
