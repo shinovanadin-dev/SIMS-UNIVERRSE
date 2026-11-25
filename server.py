@@ -101,7 +101,7 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/memory/save":
             try:
                 length=int(self.headers.get("Content-Length","0"))
-                if length<=0 or length>MAX_BODY: self._json(413,{"error":"Request body empty or too large"}); return
+                if length<=0 or length>MAX_MEMORY_BODY: self._json(413,{"error":"Request body empty or too large"}); return
                 payload=json.loads(self.rfile.read(length)); pairs=payload.get("pairs"); language=str(payload.get("target_language","Russian"))[:80]
                 if not isinstance(pairs,list) or len(pairs)>5000: self._json(400,{"error":"pairs must be an array of up to 5000 entries"}); return
                 valid=[]
