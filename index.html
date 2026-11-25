@@ -849,7 +849,7 @@ async function managerSelfTest() {
     { name: "Valid single TGI resource", run: async () => {
       const b = make(1, 96, 0, [0x12345678, 0x87654321, 0, 0xabcdef01, 96, 0, 12]);
       const p = await managerParseDbpf({ arrayBuffer: async () => b });
-      return p.ok && p.entries.length === 1 && p.entries[0].type === 0x12345678 && p.entries[0].group === 0x87654321 && p.entries[0].instance === "00000000abcdef01";
+      return p.ok && p.entries.length === 1 && p.entries[0].type === 0x12345678 && p.entries[0].group === 0x87654321 && p.entries[0].instance === "abcdef01";
     }},
     { name: "Reject wrong magic", run: async () => {
       const b = make(0, 0);
@@ -857,7 +857,7 @@ async function managerSelfTest() {
       return !(await managerParseDbpf({ arrayBuffer: async () => b })).ok;
     }},
     { name: "Reject index out of bounds", run: async () => {
-      const b = make(1, 96, 0, [1, 2, 3, 4, 5000, 0, 0, 0]);
+      const b = make(1, 96, 0, [1, 2, 3, 4, 5000, 0, 0]);
       return !(await managerParseDbpf({ arrayBuffer: async () => b })).ok;
     }},
     { name: "Reject unsupported flags", run: async () => {
