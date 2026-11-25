@@ -38,6 +38,8 @@ jobs:
         run: node --check package-translator.js
       - name: Test package translator token validator
         run: node tests/package-translator-token-tests.js
+      - name: Test two-package translator end-to-end
+        run: node tests/package-translator-workflow-e2e.js
 
       - name: Run translation memory regressions
         run: node tests/translator_memory.js
