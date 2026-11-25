@@ -26,7 +26,7 @@ jobs:
           print(f"Extracted {len(scripts)} inline script(s)")
           PY
       - name: Locate JavaScript syntax error
-        run: npx --yes prettier /tmp/site-inline.js --parser babel >/dev/null
+        run: npx --yes prettier@3.6.2 /tmp/site-inline.js --parser babel >/dev/null
       - name: Test DBPF parser fixture cases
         run: node tests/mod-manager-dbpf.test.js
       - name: Test backup verification and manifest status
