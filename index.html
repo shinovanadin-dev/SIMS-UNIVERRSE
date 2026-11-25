@@ -892,4 +892,5 @@ function translatorSave(){try{localStorage.setItem("simsUniverseTranslatorDraft"
 function translatorLoadSample(){translatorRows=[{source:"You cannot do this right now.",trans:"Сейчас вы не можете это сделать."},{source:"Ask about their career.",trans:"Спросить о карьере."},{source:"Enable custom content and mods.",trans:"Включите пользовательский контент и моды."}];translatorDraw()}
 function translatorExport(){let lines=[["Source","Russian"],...translatorRows.map(r=>[r.source,r.trans])],data=lines.map(r=>r.map(v=>String(v||"").replace(/[\r\n\t]/g," ")).join("\t")).join("\n"),blob=new Blob([data],{type:"text/tab-separated-values;charset=utf-8"}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=(document.getElementById("translatorModName")?.value||"mod-translation").replace(/[^a-z0-9-_]+/gi,"_")+".tsv";a.click();URL.revokeObjectURL(url)}
 function translatorClear(){if(confirm("Очистить текущие строки?")){translatorRows=[];translatorDraw()}}
+document.querySelectorAll("#nav button").forEach(b=>b.addEventListener("click",()=>go(b.dataset.p)));go("home");
 </script></body></html>
