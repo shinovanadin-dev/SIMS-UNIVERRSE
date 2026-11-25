@@ -29,6 +29,9 @@ jobs:
           print(f"Extracted {len(scripts)} inline scripts")
           PY
       - name: Check JavaScript syntax
+        run: node --check package-translator.js
+      - name: Test package translator token validator
+        run: node tests/package-translator-token-tests.js
         run: |
           set -e
           for file in /tmp/inline-*.js; do
