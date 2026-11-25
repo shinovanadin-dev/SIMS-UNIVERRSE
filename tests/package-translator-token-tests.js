@@ -14,3 +14,13 @@ t("escaped linebreak","A\\nB","А\\nБ",true);
 t("real CRLF preserved","A\\r\\nB","А\\r\\nБ",true);
 t("linebreak count rejected","A\\nB","А Б",false);
 console.log("PACKAGE TOKEN REGRESSIONS: 11/11 passed");
+const maps=ctx.window.suOldTranslationMaps([
+ {sig:"100:ABC",loc:18,st:{entries:[{key:"1",text:"Старый перевод"},{key:"2",text:"Другой текст"}]}},
+ {sig:"200:DEF",loc:18,st:{entries:[{key:"1",text:"Конфликт"}]}}
+]);
+assert.strictEqual(maps.sigMap.get("100:ABC").get("00000001").text,"Старый перевод","exact key normalized and reused by signature");
+assert.ok(maps.keyMap.get("00000001").conflict,"ambiguous cross-table old RU key flagged");
+const conflict=ctx.window.suOldTranslationMaps([{sig:"100:ABC",loc:18,st:{entries:[{key:"3",text:"Первый"},{key:"3",text:"Второй"}]}}]);
+assert.ok(conflict.conflicts.has("100:ABC|00000003"),"duplicate conflicting old-RU key is marked");
+console.log("OLD-RU SOURCE MAP REGRESSIONS: 3/3 passed");
+
