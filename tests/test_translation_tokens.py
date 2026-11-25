@@ -100,5 +100,25 @@ class TokenTests(unittest.TestCase):
         dst = 'Привет! 日本語 café'
         self.assertEqual(self.safe(src, dst), dst)
 
+    def test_localized_gender_conditional_suffixes_allowed(self):
+        src = "{M0.He} {F0.She} {0M.His} {0F.Her}"
+        dst = "{M0.Он} {F0.Она} {0M.Его} {0F.Её}"
+        self.assertEqual(self.safe(src, dst), dst)
+
+    def test_gender_family_loss_rejected(self):
+        src = "{M0.He} {F0.She}"
+        dst = "{M0.Он}"
+        self.assertEqual(self.safe(src, dst), src)
+
+    def test_product_plural_suffix_localized(self):
+        src = "{S0.item} {P0.items}"
+        dst = "{S0.предмет} {P0.предметов}"
+        self.assertEqual(self.safe(src, dst), dst)
+
+    def test_conditional_family_duplication_rejected(self):
+        src = "{M0.He}"
+        dst = "{M0.Он} {M0.Он}"
+        self.assertEqual(self.safe(src, dst), src)
+
 if __name__ == '__main__':
     unittest.main()
