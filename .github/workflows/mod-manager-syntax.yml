@@ -21,7 +21,7 @@ jobs:
           scripts = re.findall("<script[^>]*>(.*?)</script>", html, flags=re.I|re.S)
           if not scripts:
               raise SystemExit("No inline scripts found")
-          open("/tmp/site-inline.js", "w", encoding="utf-8").write(chr(10).join(scripts))
+          open("/tmp/site-inline.js", "w", encoding="utf-8").write(chr(10).join(scripts))\n          # Break long page-template source lines to make CI parser errors actionable\n          js = open("/tmp/site-inline.js", encoding="utf-8").read()\n          js = js.replace(",tools:()=>`", "\\n,tools:()=>`").replace(",guides:()=>`", "\\n,guides:()=>`")\n          open("/tmp/site-inline.js", "w", encoding="utf-8").write(js)
           print(f"Extracted {len(scripts)} inline script(s)")
           PY
       - name: Check JavaScript syntax
