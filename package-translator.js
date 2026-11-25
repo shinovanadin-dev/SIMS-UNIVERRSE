@@ -19,7 +19,19 @@ function suImportCP(){let i=document.createElement("input");i.type="file";i.acce
 async function suTables(bytes,p){let a=[];for(const e of p.entries.filter(x=>x.type===DBPF_STBL_TYPE)){let raw=await dbpfExtractFromBytes(bytes,e),st=stblParse(raw.buffer.slice(raw.byteOffset,raw.byteOffset+raw.byteLength));a.push({e,st,loc:suLocale(e),sig:suTableSig(e)})}return a}
 function suOldMaps(oldTables){let sigMap=new Map(),keyMap=new Map(),conflicts=new Set(),preferred=oldTables.filter(t=>t.loc===18),tables=preferred.length?preferred:oldTables;for(const t of tables){let m=sigMap.get(t.sig);if(!m){m=new Map();sigMap.set(t.sig,m)}for(const r of t.st.entries){let k=suKey(r.key),v=String(r.text||"");if(!k||!v.trim())continue;if(m.has(k)&&m.get(k).text!==v){conflicts.add(t.sig+"|"+k);continue}m.set(k,{text:v})}}
 for(const t of oldTables)for(const r of t.st.entries){let k=suKey(r.key),v=String(r.text||"");if(!k||!v.trim())continue;if(keyMap.has(k)&&keyMap.get(k).conflict)continue;if(keyMap.has(k)&&keyMap.get(k).text!==v)keyMap.set(k,{conflict:true});else if(!keyMap.has(k))keyMap.set(k,{text:v})}return{sigMap,keyMap,conflicts}}
-async function suApiBatch(batch){async function call(rows){let res=await fetch("/api/translate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({target_language:"Russian (Русский)",texts:rows.map(x=>x.source)})}),data=await res.json().catch(()=>({}));if(!res.ok)throw Error("HTTP "+res.status+" "+(data.error||"API error"));if(!Array.isArray(data.translations)||data.translations.length!==rows.length)throw Error("response count mismatch");return data.translations}
+async function suApiBatch(batch){
+ async function call(rows){
+  const res=await fetch("/api/translate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({target_language:"Russian (Русский)",texts:rows.map(x=>x.source)})});
+  const data=await res.json().catch(()=>({}));
+  if(!res.ok)throw Error("HTTP "+res.status+" "+(data.error||"API error"));
+  if(!Array.isArray(data.translations)||data.translations.length!==rows.length)throw Error("response count mismatch");
+  return data.translations;
+ }
+ let last="";
+ for(let n=1;n<=3;n++){try{return await call(batch)}catch(e){last=e.message||String(e);if(n<3)await new Promise(r=>setTimeout(r,700*n))}}
+ if(batch.length>1){const mid=Math.ceil(batch.length/2);suLog("Adaptive split: "+batch.length+" → "+mid+" + "+(batch.length-mid);const left=await suApiBatch(batch.slice(0,mid));const right=await suApiBatch(batch.slice(mid));return left.concat(right)}
+ throw Error(last)
+}
 let last="";for(let n=1;n<=3;n++)try{return await call(batch)}catch(e){last=e.message||String(e);if(n<3)await new Promise(r=>setTimeout(r,700*n))}if(batch.length>1){let mid=Math.ceil(batch.length/2);suLog("Adaptive split: "+batch.length+" → "+mid+" + "+(batch.length-mid);return(await suApiBatch(batch.slice(0,mid))).concat(await suApiBatch(batch.slice(mid)))}throw Error(last)}
 async function suPackageTranslationRun(){if(suBusy)return;suBusy=true;let originalFile=document.getElementById("suOriginalPackageFile")?.files?.[0],oldFile=document.getElementById("suOldRussianPackageFile")?.files?.[0],log=document.getElementById("suPkgLog");if(log)log.textContent="";if(!originalFile||!oldFile){suBusy=false;alert("Загрузите оригинальный package и старый русский package.");return}let saved=dbpfCurrent,savedEntries=dbpfEntries;try{
 suStatus("Чтение package, SHA-256…");let ob=new Uint8Array(await originalFile.arrayBuffer()),rb=new Uint8Array(await oldFile.arrayBuffer()),oh=await suHash(ob),rh=await suHash(rb);suLog("SHA-256 original: "+oh);suLog("SHA-256 old RU: "+rh);
