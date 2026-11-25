@@ -1,6 +1,6 @@
 const fs=require("fs");
 const source=fs.readFileSync("index.html","utf8");
-const start=source.indexOf("function managerParseDbpf(");
+const start=source.indexOf("async function managerParseDbpf(");
 const end=source.indexOf("async function managerHashBytes",start);
 if(start<0||end<0)throw Error("Parser function anchors missing");
 const parser=source.slice(start,end);
