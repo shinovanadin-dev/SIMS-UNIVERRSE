@@ -35,6 +35,7 @@ MODEL = os.environ.get("GROQ_TRANSLATOR_MODEL", "openai/gpt-oss-120b")
 MAX_BODY = 65536
 MAX_STRINGS = 25
 MAX_TEXT = 40000
+MAX_MEMORY_BODY = 2 * 1024 * 1024
 # Persistent shared translation memory (Railway volume mounted at /data).
 MEMORY_DB = os.environ.get("TRANSLATOR_DB_PATH", "/data/sims_universe_translations.sqlite3")
 def _memory_db():
@@ -92,7 +93,7 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/memory/lookup":
             try:
                 length=int(self.headers.get("Content-Length","0"))
-                if length<=0 or length>MAX_BODY: self._json(413,{"error":"Request body empty or too large"}); return
+                if length<=0 or length>MAX_MEMORY_BODY: self._json(413,{"error":"Request body empty or too large"}); return
                 payload=json.loads(self.rfile.read(length)); texts=payload.get("texts"); language=str(payload.get("target_language","Russian"))[:80]
                 if not isinstance(texts,list) or len(texts)>5000 or not all(isinstance(x,str) for x in texts): self._json(400,{"error":"texts must be an array of up to 5000 strings"}); return
                 self._json(200,{"translations":_memory_lookup(language,texts)}); return
