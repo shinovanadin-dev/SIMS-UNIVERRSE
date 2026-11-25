@@ -4,6 +4,7 @@ import os, json, urllib.request, urllib.error
 
 import re
 from collections import Counter
+import sqlite3
 
 # Preserve markup, named/positional placeholders, printf formats, Sims markup,
 # and escaped control sequences. Token counts matter; order may legitimately change.
@@ -34,6 +35,27 @@ MODEL = os.environ.get("GROQ_TRANSLATOR_MODEL", "openai/gpt-oss-120b")
 MAX_BODY = 65536
 MAX_STRINGS = 25
 MAX_TEXT = 40000
+# Persistent shared translation memory (Railway volume mounted at /data).
+MEMORY_DB = os.environ.get("TRANSLATOR_DB_PATH", "/data/sims_universe_translations.sqlite3")
+def _memory_db():
+    db = sqlite3.connect(MEMORY_DB, timeout=20)
+    db.execute("CREATE TABLE IF NOT EXISTS translation_memory (language TEXT NOT NULL, source TEXT NOT NULL, translation TEXT NOT NULL, updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY(language, source))")
+    return db
+def _memory_lookup(language, texts):
+    db = _memory_db()
+    try:
+        result = {}
+        for source in texts:
+            row = db.execute("SELECT translation FROM translation_memory WHERE language=? AND source=?", (language, source)).fetchone()
+            if row: result[source] = row[0]
+        return result
+    finally: db.close()
+def _memory_save(language, pairs):
+    db = _memory_db()
+    try:
+        db.executemany("INSERT INTO translation_memory(language,source,translation,updated_at) VALUES(?,?,?,CURRENT_TIMESTAMP) ON CONFLICT(language,source) DO UPDATE SET translation=excluded.translation,updated_at=CURRENT_TIMESTAMP", [(language, source, translation) for source, translation in pairs])
+        db.commit()
+    finally: db.close()
 
 class Handler(BaseHTTPRequestHandler):
     def _json(self, status, obj):
@@ -66,7 +88,29 @@ class Handler(BaseHTTPRequestHandler):
         else: self.send_error(404)
 
     def do_POST(self):
-        if urlsplit(self.path).path != "/api/translate":
+        path = urlsplit(self.path).path
+        if path == "/api/memory/lookup":
+            try:
+                length=int(self.headers.get("Content-Length","0"))
+                if length<=0 or length>MAX_BODY: self._json(413,{"error":"Request body empty or too large"}); return
+                payload=json.loads(self.rfile.read(length)); texts=payload.get("texts"); language=str(payload.get("target_language","Russian"))[:80]
+                if not isinstance(texts,list) or len(texts)>5000 or not all(isinstance(x,str) for x in texts): self._json(400,{"error":"texts must be an array of up to 5000 strings"}); return
+                self._json(200,{"translations":_memory_lookup(language,texts)}); return
+            except Exception as e: self._json(500,{"error":"Memory lookup failed: "+str(e)}); return
+        if path == "/api/memory/save":
+            try:
+                length=int(self.headers.get("Content-Length","0"))
+                if length<=0 or length>MAX_BODY: self._json(413,{"error":"Request body empty or too large"}); return
+                payload=json.loads(self.rfile.read(length)); pairs=payload.get("pairs"); language=str(payload.get("target_language","Russian"))[:80]
+                if not isinstance(pairs,list) or len(pairs)>5000: self._json(400,{"error":"pairs must be an array of up to 5000 entries"}); return
+                valid=[]
+                for p in pairs:
+                    if not isinstance(p,dict) or not isinstance(p.get("source"),str) or not isinstance(p.get("translation"),str): continue
+                    source=p["source"]; translated=p["translation"]
+                    if source.strip() and translated.strip() and _safe_translation(source,translated)==translated: valid.append((source,translated))
+                _memory_save(language,valid); self._json(200,{"saved":len(valid)}); return
+            except Exception as e: self._json(500,{"error":"Memory save failed: "+str(e)}); return
+        if path != "/api/translate":
             self.send_error(404); return
         key=os.environ.get("GROQ_API_KEY")
         if not key:
@@ -115,6 +159,7 @@ class Handler(BaseHTTPRequestHandler):
             if not isinstance(translations,list) or len(translations)!=len(texts) or not all(isinstance(x,str) for x in translations):
                 raise ValueError("Model output did not match expected translations array")
             translations=[_safe_translation(src, out) for src, out in zip(texts, translations)]
+            _memory_save(language, list(zip(texts, translations)))
             self._json(200,{"translations":translations})
         except urllib.error.HTTPError as e:
             detail=e.read(1500).decode("utf-8","replace")
