@@ -29,3 +29,5 @@ jobs:
         run: node --check /tmp/site-inline.js || { nl -ba /tmp/site-inline.js | sed -n '1638,1655p'; exit 1; }
       - name: Test DBPF parser fixture cases
         run: node tests/mod-manager-dbpf.test.js
+      - name: Test backup verification and manifest status
+        run: node tests/mod-manager-backup.test.js
