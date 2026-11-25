@@ -38,4 +38,4 @@ jobs:
           print(f"Extracted {len(scripts)} inline script(s)")
           PY
       - name: Check JavaScript syntax
-        run: node --check /tmp/site-inline.js
+        run: node --check /tmp/site-inline.js || { nl -ba /tmp/site-inline.js | sed -n '1638,1655p'; exit 1; }
