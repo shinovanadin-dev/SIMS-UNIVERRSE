@@ -22,7 +22,6 @@ jobs:
           if not scripts:
               raise SystemExit("No inline scripts found")
           js = chr(10).join(scripts)
-          js = chr(10).join(scripts)
           open("/tmp/site-inline.js", "w", encoding="utf-8").write(js)
           print(f"Extracted {len(scripts)} inline script(s)")
           PY
