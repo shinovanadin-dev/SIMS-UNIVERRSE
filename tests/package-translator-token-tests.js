@@ -9,7 +9,7 @@ t("gender family duplicate","{M0.He}","{M0.Он} {M0.Он}",false);
 t("localized S/P tokens","{S0.item} {P0.items}","{S0.предмет} {P0.предметов}",true);
 t("exact dynamic placeholder","{0.SimFirstName}","{0.SimFirstName}",true);
 t("missing dynamic placeholder","{0.SimFirstName}","Сим",false);
-t("exact markup","<link=\\\"0x1\\\">Open</link>","<link=\\\"0x1\\\">Открыть</link>",true);
+t('exact markup','<link="0x1">Open</link>','<link="0x1">Открыть</link>',true);
 t("escaped linebreak","A\\nB","А\\nБ",true);
 t("real CRLF preserved","A\\r\\nB","А\\r\\nБ",true);
 t("linebreak count rejected","A\\nB","А Б",false);
