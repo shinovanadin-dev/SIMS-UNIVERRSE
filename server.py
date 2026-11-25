@@ -12,7 +12,7 @@ def _tokens(text):
     return TOKEN_PATTERN.findall(text)
 def _linebreak_signature(text):
     return (text.count("\r\n"), text.count("\n") - text.count("\r\n"), text.count("\r") - text.count("\r\n"))
-CONDITIONAL_PATTERN = re.compile(r"^\{((?:[MF]\d*|\d+[MF]|[SP]\d*)\.(.+))\}$", re.I)
+CONDITIONAL_PATTERN = re.compile(r"^\{((?:[MF]\d*|\d+[MF]|[SP]\d*)\.)(.+)\}$", re.I)
 def _token_signature(text):
     exact, families = Counter(), Counter()
     for token in TOKEN_PATTERN.findall(text):
